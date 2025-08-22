@@ -40,7 +40,7 @@ BEGIN
 		lpm_hint => "ENABLE_RUNTIME_MOD = YES,INSTANCE_NAME = DTCM",
 		lpm_type => "altsyncram",
 		outdata_reg_a => "UNREGISTERED",
-		init_file => "C:\Users\Eyal\Architecture-Labs\Final_Project\Library\GPIO_test1\bin\DTCM.hex",
+		init_file => "C:\Users\Eyal\Architecture-Labs\Final_Project\Library\int_test1\bin\DTCM.hex",
 		intended_device_family => "Cyclone"
 	)
 	PORT MAP (

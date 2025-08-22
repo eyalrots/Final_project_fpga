@@ -14,6 +14,7 @@ ENTITY control IS
    PORT( 	
 		opcode_i 			: IN 	STD_LOGIC_VECTOR(5 DOWNTO 0);
 		funct_i				: in	STD_LOGIC_VECTOR(5 DOWNTO 0);
+		in_intr_i			: in	boolean;
 		RegDst_ctrl_o 		: OUT 	STD_LOGIC_vector(1 downto 0);
 		ALUSrc_ctrl_o 		: OUT 	STD_LOGIC;
 		MemtoReg_ctrl_o 	: OUT 	STD_LOGIC_VECTOR(1 downto 0);
@@ -53,7 +54,7 @@ BEGIN
 	mul_w				<=	'1' when 	opcode_i = MUL_OPC			else '0';
 
 							
-  	RegDst_ctrl_o    	<=  "01" when (rtype_w='1' or mul_w='1') else "10" when jal_w='1' else "00";
+  	RegDst_ctrl_o    	<=  "01" when (rtype_w='1' or mul_w='1') else "10" when jal_w='1' else "11" when (jr_w='1' and in_intr_i) else "00";
  	ALUSrc_ctrl_o  		<=  lw_w OR sw_w or itype_imm_w;
 	MemtoReg_ctrl_o 	<=  "01" when lw_w='1' else "10" when lui_w='1' else "00";
   	RegWrite_ctrl_o 	<=  (rtype_w and not jr_w) OR lw_w or itype_imm_w or lui_w or mul_w or jal_w;
@@ -62,7 +63,7 @@ BEGIN
  	Branch_ctrl_o      	<=  beq_w;
 	BranchN_ctrl_o      <=  bneq_w;
 	Jump_ctrl_o			<=  jump_w or jal_w;
-	Jal_ctrl_o			<=  jal_w;
+	Jal_ctrl_o			<=  '1' when (jal_w='1' or (jr_w='1' and in_intr_i)) else '0';
 	JR_ctrl_o			<=  jr_w and rtype_w;
 	
 	ALUOp_ctrl_o(0) 	<=  beq_w OR bneq_w OR itype_imm_w;

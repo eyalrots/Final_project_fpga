@@ -30,6 +30,10 @@ ARCHITECTURE struct OF MIPS_tb IS
 	-- Internal signal declarations
 	SIGNAL rst_tb_i           	: STD_LOGIC;
 	SIGNAL clk_tb_i           	: STD_LOGIC;
+	--- interrupts ---
+	signal key1_tb_i	: std_logic;
+	signal key2_tb_i	: std_logic;
+	signal key3_tb_i	: std_logic;
 	--- GPIO ---
 	SIGNAL sw_tb_i    	: std_logic_vector(7 downto 0);
 	SIGNAL hex0_tb_o 	 : std_logic_vector(6 downto 0);
@@ -75,6 +79,10 @@ BEGIN
 	PORT MAP (
 		rst_i           	=> rst_tb_i,
 		clk_i           	=> clk_tb_i,
+		--- interrupts ---
+		key1_i				=> key1_tb_i,
+		key2_i				=> key2_tb_i,
+		key3_i				=> key3_tb_i,
 		--- GPIO ---
 		sw_i  				=> sw_tb_i,
 		hex0_o				=> hex0_tb_o,
@@ -117,6 +125,12 @@ BEGIN
 		  wait;
     end process;
 
-	
+	KEYS :
+	process
+  begin
+	key1_tb_i <= '0', '1' after 500 ns;
+	key2_tb_i <= '0','1' after 1500 ns;
+	key3_tb_i <= '0','1' after 3000 ns;
+  end process;
 --------------------------------------------------------------------		
 END struct;

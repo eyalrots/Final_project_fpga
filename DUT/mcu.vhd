@@ -20,6 +20,10 @@ ENTITY mcu IS
     PORT (
         clk_i               : std_logic;
         rst_i               : std_logic;
+        --- interrupts ---
+        key1_i              : in std_logic;
+        key2_i              : in std_logic;
+        key3_i              : in std_logic;
         --- GPIO ---
         sw_i                : in  std_logic_vector(7 downto 0);
         hex0_o              : out std_logic_vector(6 downto 0);
@@ -84,8 +88,10 @@ ARCHITECTURE mcu_arc OF mcu is
     signal fir_clk_w   : std_logic;
     signal fir_ifg_w   : std_logic;
     --- interrupts ---
-    signal IFG_w        : std_logic_vector(7 downto 0);
-    signal IE_w         : std_logic_vector(7 downto 0);
+    signal gie_w       : std_logic;
+    signal inta_w      : std_logic;
+    signal intr_w      : std_logic;
+    signal intr_cs_w   : std_logic;
     --- random ---
     signal zero_vec_w   : std_logic_vector(23 downto 0);
 begin
@@ -125,8 +131,11 @@ begin
         alu_result_o    => alu_result_o,
         read_data1_o    => read_data1_o,
         read_data2_o    => read_data2_o,
-        inst_cnt_o  => inst_cnt_o,
-        write_data_o=> write_data_o
+        inst_cnt_o      => inst_cnt_o,
+        write_data_o    => write_data_o,
+        INTR_i          => intr_w,
+        INTA_o          => inta_w,
+        GIE_o           => gie_w
     );
 
     --- address decoder
@@ -364,11 +373,34 @@ begin
         FIFOCLK_i   =>  fifo_clk_w,
         FIFOWEN_i  =>  FIRCTL_w(5),
         FIRCLK_i    =>  fir_clk_w,
-        FIRRsT_i    =>  FIRCTL_w(1),
+        FIRRST_i    =>  FIRCTL_w(1),
         FIRENA_i    =>  FIRCTL_w(0),
         FIROUT_o    =>  FIROUT_w,
         FIFOFULL_o  =>  FIRCTL_w(3),
         FIFOEMPTY_o =>  FIRCTL_w(2),
         FIRIFG_o    =>  fir_ifg_w
+    );
+
+    ---- interrupts ---
+    intr_cs_w <= '1' when addr_bus_w=X"840" or addr_bus_w=X"841" else '0';
+    intr: int_ctrl port map (
+        clk_i           => clk_i,
+        rst_i           => rst_i,
+        RX_INT_i        => '0',
+        TX_INT_i        => '0',
+        BT_INT_i        => BTIFG_w,
+        KEY1_INT_i      => key1_i,
+        KEY2_INT_i      => key2_i,
+        KEY3_INT_i      => key3_i,
+        FIR_INT_i       => fir_ifg_w,
+        CS_i            => intr_cs_w,
+        INTA_i          => inta_w,
+        GIE             => gie_w,
+        MemRead_ctrl_i  => mem_rd_en_w,
+        MemWrite_ctrl_i => mem_wr_en_w,
+        A0_i            => addr_bus_w(0),
+        fir_empty_i     => FIRCTL_w(2),
+        INTR_o          => intr_w,
+        data_bus_io     => data_bus_w
     );
 end architecture;

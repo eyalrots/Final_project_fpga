@@ -41,7 +41,11 @@ package aux_package is
 			data_bus_io			: inout std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
 			addr_bus_o			: out	std_logic_vector(DTCM_ADDR_WIDTH-1 downto 0);
 			MemWrite_ctrl_o		: out	std_logic;
-			MemRead_ctrl_o		: out	std_logic
+			MemRead_ctrl_o		: out	std_logic;
+			--- interrupts ---
+			INTR_i				: in	std_logic;
+			INTA_o				: out	std_logic;
+			GIE_o				: out	std_logic
 		);		
 	end component;
 ---------------------------------------------------------  
@@ -49,6 +53,7 @@ package aux_package is
 		PORT( 	
 		opcode_i 			: IN 	STD_LOGIC_VECTOR(5 DOWNTO 0);
 		funct_i				: in	STD_LOGIC_VECTOR(5 DOWNTO 0);
+		in_intr_i			: in	boolean;
 		RegDst_ctrl_o 		: OUT 	std_logic_vector(1 downto 0);
 		ALUSrc_ctrl_o 		: OUT 	STD_LOGIC;
 		MemtoReg_ctrl_o 	: OUT 	STD_LOGIC_VECTOR(1 downto 0);
@@ -108,6 +113,7 @@ package aux_package is
 		PC_WIDTH		: integer := 10
 	);
 	PORT(	clk_i,rst_i		: IN 	STD_LOGIC;
+			gie_i			: in	std_logic;
 			instruction_i 	: IN 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			alu_result_i	: IN 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			RegWrite_ctrl_i : IN 	std_logic;
@@ -135,6 +141,7 @@ package aux_package is
 	);
 	PORT(	
 		clk_i, rst_i 	: IN 	STD_LOGIC;
+		ena_i			: in	boolean;
 		add_result_i 	: IN 	STD_LOGIC_VECTOR(7 DOWNTO 0);
         Branch_ctrl_i 	: IN 	STD_LOGIC;
 		BranchN_ctrl_i	: in	std_logic;
@@ -236,6 +243,10 @@ package aux_package is
 		PORT (
 			clk_i   			: std_logic;
 			rst_i   			: std_logic;
+			--- interrupts ---
+			key1_i              : in std_logic;
+			key2_i              : in std_logic;
+			key3_i              : in std_logic;
 			--- GPIO ---
 			sw_i    			: in  std_logic_vector(7 downto 0);
 			hex0_o  			: out std_logic_vector(6 downto 0);
@@ -366,6 +377,32 @@ PORT (
     FIFOEMPTY_o : out std_logic;
     FIRIFG_o    : out std_logic
 );
+END component;
+--------------------------------------------------------------
+component int_ctrl
+    GENERIC (
+        DATA_BUS_WIDTH : INTEGER := 32);
+    PORT (
+        clk_i           : in std_logic;
+        rst_i           : in std_logic;
+        RX_INT_i        : in std_logic;
+        TX_INT_i        : in std_logic;
+        BT_INT_i        : in std_logic;
+        KEY1_INT_i      : in std_logic;
+        KEY2_INT_i      : in std_logic;
+        KEY3_INT_i      : in std_logic;
+        FIR_INT_i       : in std_logic;
+        CS_i            : in std_logic;
+        INTA_i          : in std_logic;
+        GIE             : in std_logic;
+        MemRead_ctrl_i  : in std_logic;
+        MemWrite_ctrl_i : in std_logic;
+        A0_i            : in std_logic;
+        fir_empty_i     : in std_logic;
+        -- addr_bus_i		: in std_logic_vector(DTCM_ADDR_WIDTH-1 downto 0);
+        INTR_o          : out std_logic;  
+        data_bus_io     : inout std_logic_vector(DATA_BUS_WIDTH-1 downto 0)
+    );
 END component;
 --------------------------------------------------------------
 

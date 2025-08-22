@@ -24,6 +24,7 @@ ENTITY Ifetch IS
 	);
 	PORT(	
 		clk_i, rst_i 	: IN 	STD_LOGIC;
+		ena_i			: in	boolean;
 		add_result_i 	: IN 	STD_LOGIC_VECTOR(7 DOWNTO 0);
         Branch_ctrl_i 	: IN 	STD_LOGIC;
 		BranchN_ctrl_i	: in	std_logic;
@@ -58,7 +59,7 @@ BEGIN
 		lpm_hint => "ENABLE_RUNTIME_MOD = YES,INSTANCE_NAME = ITCM",
 		lpm_type => "altsyncram",
 		outdata_reg_a => "UNREGISTERED",
-		init_file => "C:\Users\Eyal\Architecture-Labs\Final_Project\Library\GPIO_test1\bin\ITCM.hex",
+		init_file => "C:\Users\Eyal\Architecture-Labs\Final_Project\Library\int_test1\bin\ITCM.hex",
 		intended_device_family => "Cyclone"
 	)
 	PORT MAP (
@@ -100,7 +101,9 @@ BEGIN
 		IF rst_i = '1' THEN
 			pc_q(PC_WIDTH-1 DOWNTO 2) <= (OTHERS => '0') ; 
 		ELSIF(clk_i'EVENT  AND clk_i='1') THEN
-			pc_q(PC_WIDTH-1 DOWNTO 2) <= next_pc_w;	
+			if (ena_i) then
+				pc_q(PC_WIDTH-1 DOWNTO 2) <= next_pc_w;	
+			end if;
 		END IF;
 	END PROCESS;
 ---------------------------------------------------------------------------------------

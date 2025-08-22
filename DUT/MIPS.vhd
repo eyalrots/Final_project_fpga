@@ -13,36 +13,41 @@ USE work.aux_package.all;
 
 ENTITY MIPS IS
 	generic( 
-			WORD_GRANULARITY : boolean 	:= G_WORD_GRANULARITY;
-	        MODELSIM : integer 			:= G_MODELSIM;
-			DATA_BUS_WIDTH : integer 	:= 32;
-			ITCM_ADDR_WIDTH : integer 	:= G_ADDRWIDTH;
-			DTCM_ADDR_WIDTH : integer 	:= 12;
-			PC_WIDTH : integer 			:= 10;
-			FUNCT_WIDTH : integer 		:= 6;
-			DATA_WORDS_NUM : integer 	:= G_DATA_WORDS_NUM;
-			CLK_CNT_WIDTH : integer 	:= 16;
-			INST_CNT_WIDTH : integer 	:= 16
+		WORD_GRANULARITY : boolean 	:= G_WORD_GRANULARITY;
+		MODELSIM : integer 			:= G_MODELSIM;
+		DATA_BUS_WIDTH : integer 	:= 32;
+		ITCM_ADDR_WIDTH : integer 	:= G_ADDRWIDTH;
+		DTCM_ADDR_WIDTH : integer 	:= 12;
+		PC_WIDTH : integer 			:= 10;
+		FUNCT_WIDTH : integer 		:= 6;
+		DATA_WORDS_NUM : integer 	:= G_DATA_WORDS_NUM;
+		CLK_CNT_WIDTH : integer 	:= 16;
+		INST_CNT_WIDTH : integer 	:= 16
 	);
-	PORT(	rst_i		 		:IN	STD_LOGIC;
-			clk_i				:IN	STD_LOGIC; 
-			-- Output important signals to pins for easy display in SignalTap
-			pc_o				:OUT	STD_LOGIC_VECTOR(PC_WIDTH-1 DOWNTO 0);
-			alu_result_o 		:OUT	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-			read_data1_o 		:OUT	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-			read_data2_o 		:OUT	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-			write_data_o		:OUT	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-			instruction_o		:OUT	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-			Branch_ctrl_o		:OUT 	STD_LOGIC;
-			Zero_o				:OUT 	STD_LOGIC; 
-			RegWrite_ctrl_o		:OUT 	STD_LOGIC;
-			mclk_cnt_o			:OUT	STD_LOGIC_VECTOR(CLK_CNT_WIDTH-1 DOWNTO 0);
-			inst_cnt_o 			:OUT	STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0);
-			--- tri-bus ---
-			data_bus_io			: inout std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-			addr_bus_o			: out	std_logic_vector(DTCM_ADDR_WIDTH-1 downto 0);
-			MemWrite_ctrl_o		: out	std_logic;
-			MemRead_ctrl_o		: out	std_logic
+	PORT(	
+		rst_i		 		:IN	STD_LOGIC;
+		clk_i				:IN	STD_LOGIC; 
+		-- Output important signals to pins for easy display in SignalTap
+		pc_o				:OUT	STD_LOGIC_VECTOR(PC_WIDTH-1 DOWNTO 0);
+		alu_result_o 		:OUT	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+		read_data1_o 		:OUT	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+		read_data2_o 		:OUT	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+		write_data_o		:OUT	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+		instruction_o		:OUT	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+		Branch_ctrl_o		:OUT 	STD_LOGIC;
+		Zero_o				:OUT 	STD_LOGIC; 
+		RegWrite_ctrl_o		:OUT 	STD_LOGIC;
+		mclk_cnt_o			:OUT	STD_LOGIC_VECTOR(CLK_CNT_WIDTH-1 DOWNTO 0);
+		inst_cnt_o 			:OUT	STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0);
+		--- tri-bus ---
+		data_bus_io			: inout std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
+		addr_bus_o			: out	std_logic_vector(DTCM_ADDR_WIDTH-1 downto 0);
+		MemWrite_ctrl_o		: out	std_logic;
+		MemRead_ctrl_o		: out	std_logic;
+		--- interrupts ---
+		INTR_i				: in	std_logic;
+		INTA_o				: out	std_logic;
+		GIE_o				: out	std_logic
 	);		
 END MIPS;
 -------------------------------------------------------------------------------------
@@ -74,10 +79,19 @@ ARCHITECTURE structure OF MIPS IS
 	SIGNAL inst_cnt_w		: STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0);
 	--- tri_bus ---
 	signal mem_read_en_w	: std_logic;
+	--- interrupts ---
+	signal int_type_addr_w	: std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
+	signal mod_jr_w			: std_logic_vector(DATA_BUS_WIDTH-1 downto 0) := X"D8000000";
+	signal mod_lw_start_w	: std_logic_vector(15 downto 0) := X"8F60";
+	signal jr_out_intr_w	: std_logic_vector(10 downto 0) := "00100011011";
+	signal inta_w			: std_logic;
+	signal gie_w			: std_logic;
+	signal cur_inst_w		: std_logic_vector(1 downto 0) := "00";
+	signal not_in_intr_w	: boolean := true;
 
 BEGIN
-					-- copy important signals to output pins for easy 
-					-- display in Simulator
+	-- copy important signals to output pins for easy 
+	-- display in Simulator
    instruction_o 		<= 	instruction_w;
    alu_result_o 		<= 	alu_result_w;
    read_data1_o 		<= 	read_data1_w;
@@ -97,6 +111,47 @@ BEGIN
 	addr_bus_o 		<= alu_result_w(DTCM_ADDR_WIDTH-1 DOWNTO 0);
 	MemRead_ctrl_o 	<= mem_read_w;
 	MemWrite_ctrl_o	<= 	mem_write_w;
+
+	--- interrupts ---
+	int_ack: process(INTR_i, clk_i)
+	begin
+		if (rising_edge(clk_i)) then
+			if (INTR_i='1') then
+				inta_w <= '0';
+				gie_w <= '0';
+				not_in_intr_w <= false;
+			elsif (inta_w='0') then
+				inta_w <= '1';
+			elsif (cur_inst_w = "10") then
+				not_in_intr_w <= true;
+				cur_inst_w <= "00";
+			elsif (instruction_w(31 downto 21)=jr_out_intr_w and not_in_intr_w) then
+				gie_w <= '1';
+			end if;
+		end if;
+	end process;
+
+	intr_inst: process (rst_i, clk_i, not_in_intr_w)
+	begin
+		if (rst_i='1') then
+			cur_inst_w <= "00";
+		elsif (rising_edge(clk_i)) then
+			if (not(not_in_intr_w)) then
+				if (cur_inst_w="00") then
+					cur_inst_w <= "01"; 
+				elsif (cur_inst_w = "01") then
+					cur_inst_w <= "10";
+				end if;
+			end if;
+		end if;
+	end process;
+
+	int_type_addr_w <= data_bus_io when inta_w='0' else (others=>'0');
+	instruction_w <= instruction_w when (not_in_intr_w) else 
+						mod_lw_start_w & X"00" & int_type_addr_w(7 downto 0) when cur_inst_w = 1 else
+						mod_jr_w when cur_inst_w = 2;
+	INTA_o <= inta_w;
+	GIE_o <= gie_w;
 	
 	-- connect the PLL component
 	G0:
@@ -122,6 +177,7 @@ BEGIN
 	PORT MAP (	
 		clk_i 			=> MCLK_w,  
 		rst_i 			=> rst_i, 
+		ena_i			=> not_in_intr_w,
 		add_result_i 	=> addr_res_w,
 		Branch_ctrl_i 	=> branch_w,
 		BranchN_ctrl_i	=> branchN_w,
@@ -141,6 +197,7 @@ BEGIN
 	PORT MAP (	
 			clk_i 				=> MCLK_w,  
 			rst_i 				=> rst_i,
+			gie_i				=> gie_w,
         	instruction_i 		=> instruction_w,
 			alu_result_i 		=> alu_result_w,
 			RegWrite_ctrl_i 	=> reg_write_w,
@@ -158,6 +215,7 @@ BEGIN
 	PORT MAP ( 	
 			opcode_i 			=> instruction_w(DATA_BUS_WIDTH-1 DOWNTO 26),
 			funct_i				=> instruction_w(5 downto 0),
+			in_intr_i			=> not(not_in_intr_w),
 			Jump_ctrl_o			=> Jump_ctrl_w,
 			JR_ctrl_o			=> JR_ctrl_w,
 			Jal_ctrl_o			=> Jal_ctrl_w,
