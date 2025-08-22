@@ -32,7 +32,7 @@ ENTITY mcu IS
         pc_o                : out std_logic_vector(PC_WIDTH-1 downto 0);
         instruction_o       : out std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
         data_bus_o          : out std_logic_vector (DATA_BUS_WIDTH-1 downto 0);
-        address_bus_o       : out std_logic_vector (12-1 downto 0);
+        address_bus_o       : out std_logic_vector (DTCM_ADDR_WIDTH-1 downto 0);
         mem_wr_o            : out std_logic;
         mem_rd_o            : out std_logic;
 		alu_result_o 		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
@@ -50,7 +50,7 @@ END mcu;
 ARCHITECTURE mcu_arc OF mcu is
     --- tri bus ---
     signal data_bus_w   : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-    signal addr_bus_w   : std_logic_vector(DTCM_ADDR_WIDTH-1 downto 0);
+    signal addr_bus_w   : std_logic_vector(11 downto 0);
     signal mem_wr_en_w  : std_logic;
     signal mem_rd_en_w  : std_logic;
     --- address decoder ---
@@ -71,13 +71,23 @@ ARCHITECTURE mcu_arc OF mcu is
     signal mclk2_w      : std_logic;
     signal mclk4_w      : std_logic;
     signal mclk8_w      : std_logic;
-    signal div2         : std_logic;
     signal div4         : std_logic;
     signal div8         : std_logic_vector(1 downto 0);
     signal BTIFG_w      : std_logic;
+    --- FIR filter ---
+    signal FIRIN_w     : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
+    signal FIROUT_w    : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
+    signal FIRCTL_w    : std_logic_vector(7 downto 0);
+    signal COEF3_0_w   : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
+    signal COEF7_4_w   : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
+    signal fifo_clk_w  : std_logic;
+    signal fir_clk_w   : std_logic;
+    signal fir_ifg_w   : std_logic;
     --- interrupts ---
     signal IFG_w        : std_logic_vector(7 downto 0);
     signal IE_w         : std_logic_vector(7 downto 0);
+    --- random ---
+    signal zero_vec_w   : std_logic_vector(23 downto 0);
 begin
     --- out signals ---
     data_bus_o      <= data_bus_w;
@@ -219,10 +229,39 @@ begin
 
     --- basic timer ---
     -- registers --
-    BTCTL_w <= data_bus_w when addr_bus_w=X"81C";
-    BTCNT_w <= data_bus_w when addr_bus_w=X"820";
-    BTCCR0_w <= data_bus_w when addr_bus_w=X"824";
-    BTCCR1_w <= data_bus_w when addr_bus_w=X"828";
+    bt_regs: process (clk_i)
+    begin
+        if (falling_edge(clk_i)) then
+            write_mem: if (mem_wr_en_w='1') then
+                case addr_bus_w is
+                    when X"81C" =>
+                        BTCTL_w <= zero_vec_w & data_bus_w(7 downto 0);
+                    when X"820" =>
+                        BTCNT_w <= data_bus_w;
+                    when X"824" =>
+                        BTCCR0_w <= data_bus_w;
+                    when X"828" =>
+                        BTCCR1_w <= data_bus_w;
+                    when others =>
+                        null;
+                end case;
+            end if;
+            read_mem: if (mem_rd_en_w='1') then
+                case addr_bus_w is
+                    when X"81C" =>
+                        data_bus_w <= zero_vec_w & BTCTL_w;
+                    when X"820" =>
+                        data_bus_w <= BTCNT_w;
+                    when X"824" =>
+                        data_bus_w <= BTCCR0_w;
+                    when X"828" =>
+                        data_bus_w <= BTCCR1_w;
+                    when others =>
+                        null;
+                end case;
+            end if;
+        end if;
+    end process;
     -- logic --
     div_cnt: process(clk_i,rst_i)
     begin 
@@ -247,6 +286,7 @@ begin
     end process;
 
     timer: basic_timer port map (
+        addr_bus_i      => addr_bus_w,
         BTCCR0_i        => BTCCR0_w,
         BTCCR1_i        => BTCCR1_w,
         BTCLR_i         => BTCTL_w(2),
@@ -259,8 +299,76 @@ begin
         BTIPx_i         => BTCTL_w(1 downto 0),
         BTOUTMD_i       => BTCTL_w(7),
         BTOUTEN_i       => BTCTL_w(6),
+        MemWrite_i      => mem_wr_en_w,
+        MemRead_i       => mem_rd_en_w,
         PWM_o           => pwm_o,
         BTIFG_o         => BTIFG_w,
-        BTCNT_o         => BTCNT_w
+        BTCNT_io         => BTCNT_w
+    );
+
+    --- FIR filter ---
+    -- clks --
+    fifo_clk_w <= clk_i;
+    fir_clk_w <= mclk8_w;
+    -- registers --
+    fir_regs: process (clk_i)
+    begin
+        if (falling_edge(clk_i)) then
+            write_mem: if (mem_wr_en_w='1') then
+                case addr_bus_w is
+                    when X"82C" =>
+                        FIRCTL_w(0) <= data_bus_w(0);
+                        FIRCTL_w(1) <= data_bus_w(1);
+                        FIRCTL_w(4) <= data_bus_w(4);
+                        FIRCTL_w(5) <= data_bus_w(5);
+                    when X"830" =>
+                        FIRIN_w <= data_bus_w;
+                    when X"838" =>
+                        COEF3_0_w <= data_bus_w;
+                    when X"83C" =>
+                        COEF7_4_w <= data_bus_w;
+                    when others => 
+                        FIRCTL_w(5) <= '0';
+                end case;
+            end if;
+            read_mem: if (mem_rd_en_w='1') then
+                case addr_bus_w is
+                    when X"82C" =>
+                        data_bus_w <= zero_vec_w & FIRCTL_w;
+                    when X"830" =>
+                        data_bus_w <= FIRIN_w;
+                    when X"834" =>
+                        data_bus_w <= FIROUT_w;
+                    when X"838" =>
+                        data_bus_w <= COEF3_0_w;
+                    when X"83C" =>
+                        data_bus_w <= COEF7_4_w;
+                    when others =>
+                        null;
+                end case;
+            end if;
+        end if;
+    end process;
+    -- logic --
+    FIR_filter: FIR port map(
+        FIRIN_i     =>  FIRIN_w,
+        coef0_i     =>  COEF3_0_w(7 downto 0),
+        coef1_i     =>  COEF3_0_w(15 downto 8),
+        coef2_i     =>  COEF3_0_w(23 downto 16),
+        coef3_i     =>  COEF3_0_w(DATA_BUS_WIDTH-1 downto 24),
+        coef4_i     =>  COEF7_4_w(7 downto 0),
+        coef5_i     =>  COEF7_4_w(15 downto 8),
+        coef6_i     =>  COEF7_4_w(23 downto 16),
+        coef7_i     =>  COEF7_4_w(DATA_BUS_WIDTH-1 downto 24),
+        FIFORST_i   =>  FIRCTL_w(4),
+        FIFOCLK_i   =>  fifo_clk_w,
+        FIFOWEN_i  =>  FIRCTL_w(5),
+        FIRCLK_i    =>  fir_clk_w,
+        FIRRsT_i    =>  FIRCTL_w(1),
+        FIRENA_i    =>  FIRCTL_w(0),
+        FIROUT_o    =>  FIROUT_w,
+        FIFOFULL_o  =>  FIRCTL_w(3),
+        FIFOEMPTY_o =>  FIRCTL_w(2),
+        FIRIFG_o    =>  fir_ifg_w
     );
 end architecture;

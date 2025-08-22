@@ -4,8 +4,11 @@ use ieee.std_logic_arith.all;
 use ieee.std_logic_unsigned.all;
 -------------------------------------
 ENTITY basic_timer IS
-    GENERIC (DATA_BUS_WIDTH : INTEGER := 32);
-    PORT ( 
+    GENERIC (
+        DATA_BUS_WIDTH : INTEGER := 32;
+        DTCM_ADDR_WIDTH : integer 	:= 12);
+    PORT (
+        addr_bus_i  : in std_logic_vector(DTCM_ADDR_WIDTH-1 downto 0);
         BTCCR0_i    : in std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
         BTCCR1_i    : in std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
         BTCLR_i     : in std_logic;
@@ -18,9 +21,11 @@ ENTITY basic_timer IS
         BTIPx_i     : in std_logic_vector(1 downto 0);
         BTOUTMD_i   : in std_logic;
         BTOUTEN_i   : in std_logic;
+        MemWrite_i  : in std_logic;
+        MemRead_i   : in std_logic;
         PWM_o       : out std_logic;
         BTIFG_o     : out std_logic;
-        BTCNT_o     : out std_logic_vector(DATA_BUS_WIDTH-1 downto 0)
+        BTCNT_io    : inout std_logic_vector(DATA_BUS_WIDTH-1 downto 0)
     );
 END basic_timer;
 --------------------------------------------------------------
@@ -35,6 +40,7 @@ architecture basic_timer_arc of basic_timer is
     signal BTCNT_eq_0 : std_logic;
     signal q24, q28, q32 : std_logic;
 begin
+    BTCNT_io <= BTCNT_w when (addr_bus_i=X"820" and MemRead_i='1') else (others=>'Z');
 
     R_latch: process(BTCNT_eq_0)
     begin
@@ -62,6 +68,9 @@ begin
             q28 <= '0';
             q32 <= '0';
         elsif (clk_w'event and clk_w='1') then
+            if (addr_bus_i=X"820" and MemWrite_i='1') then
+                BTCNT_w <= BTCNT_io;
+            end if;
             if (en_w='1') then
                 if (HEU0_w='1') then
                     BTCNT_w <= (others=>'0');
@@ -122,8 +131,6 @@ begin
                     q28 when "10",
                     q32 when "11",
                     '0' when others;
-
-    BTCNT_o <= BTCNT_w;
 
     PWM_o <= wave;
 end architecture;

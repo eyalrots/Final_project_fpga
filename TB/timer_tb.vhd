@@ -63,7 +63,7 @@ BEGIN
 		BTOUTEN_i	=> BTOUTEN_i_tb,
 		PWM_o		=> PWM_o_tb,
 		BTIFG_o		=> BTIFG_o_tb,
-		BTCNT_o		=> BTCNT_o_tb
+		BTCNT_io		=> BTCNT_o_tb
 	);
 --------------------------------------------------------------------
 	gen_clk : 

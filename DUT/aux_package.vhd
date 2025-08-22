@@ -264,8 +264,10 @@ package aux_package is
 	END component;
 --------------------------------------------------------------
 	component basic_timer
-		GENERIC (DATA_BUS_WIDTH : INTEGER := 32);
+		GENERIC (DATA_BUS_WIDTH : INTEGER := 32;
+       		 	DTCM_ADDR_WIDTH : integer 	:= 12);
 		PORT ( 
+			addr_bus_i  : in std_logic_vector(DTCM_ADDR_WIDTH-1 downto 0);
 			BTCCR0_i    : in std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
 			BTCCR1_i    : in std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
 			BTCLR_i     : in std_logic;
@@ -278,11 +280,93 @@ package aux_package is
 			BTIPx_i     : in std_logic_vector(1 downto 0);
 			BTOUTMD_i   : in std_logic;
 			BTOUTEN_i   : in std_logic;
+			MemWrite_i  : in std_logic;
+			MemRead_i   : in std_logic;
 			PWM_o       : out std_logic;
 			BTIFG_o     : out std_logic;
-        	BTCNT_o     : out std_logic_vector(DATA_BUS_WIDTH-1 downto 0)
+        	BTCNT_io    : inout std_logic_vector(DATA_BUS_WIDTH-1 downto 0)
 		);
 	END component;
+--------------------------------------------------------------
+component pulse_synchronizer
+    PORT ( 
+        FIRCLK_i     : in std_logic;
+        FIRENA_i     : in std_logic;
+        FIFOCLK_i    : in std_logic;
+        FIFOREN_o    : out std_logic
+    );
+END component;
+--------------------------------------------------------------
+component FIFO
+    GENERIC (
+        DATA_BUS_WIDTH : INTEGER := 32;
+        K              : integer := 8;
+        W              : integer := 24
+    );
+    PORT ( 
+        FIFORST_i     : in    std_logic;
+        FIFOCLK_i     : in    std_logic;
+        FIFOWEN_i     : in    std_logic;
+        FIFOIN_i      : in    std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
+        FIFOREN_i     : in    std_logic;
+        FIFOFULL_o    : out   std_logic;
+        FIFOEMPTY_o   : out   std_logic;
+        DATAOUT_o     : out   std_logic_vector(W-1 downto 0)
+    );
+END component;
+--------------------------------------------------------------
+component filter
+    GENERIC (
+        DATA_BUS_WIDTH : INTEGER := 32;
+        Q              : integer := 8;
+        W              : integer := 24
+    );
+    PORT ( 
+		coef_0      : in std_logic_vector(q-1 downto 0);
+		coef_1      : in std_logic_vector(q-1 downto 0);
+		coef_2      : in std_logic_vector(q-1 downto 0);
+		coef_3      : in std_logic_vector(q-1 downto 0);
+		coef_4      : in std_logic_vector(q-1 downto 0);
+		coef_5      : in std_logic_vector(q-1 downto 0);
+		coef_6      : in std_logic_vector(q-1 downto 0);
+		coef_7      : in std_logic_vector(q-1 downto 0);
+		sample_i    : in std_logic_vector(W-1 downto 0);
+		FIRCLK_i    : in std_logic;
+		FIRRST_i    : in std_logic;
+		FIRENA_i    : in std_logic;
+		ifg_o    	: out std_logic;
+		data_o      : out std_logic_vector(DATA_BUS_WIDTH-12 downto 0)
+    );
+END component;
+--------------------------------------------------------------
+component FIR
+    generic( 
+		DATA_BUS_WIDTH : integer := 32;
+        Q              : integer := 8;
+        W              : integer := 24
+);
+PORT (
+    FIRIN_i     : in std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
+    coef0_i     : in std_logic_vector(q-1 downto 0);
+    coef1_i     : in std_logic_vector(q-1 downto 0);
+    coef2_i     : in std_logic_vector(q-1 downto 0);
+    coef3_i     : in std_logic_vector(q-1 downto 0);
+    coef4_i     : in std_logic_vector(q-1 downto 0);
+    coef5_i     : in std_logic_vector(q-1 downto 0);
+    coef6_i     : in std_logic_vector(q-1 downto 0);
+    coef7_i     : in std_logic_vector(q-1 downto 0);
+    FIFORST_i   : in std_logic;
+    FIFOCLK_i   : in std_logic;
+    FIFOWEN_i   : in std_logic;
+    FIRCLK_i    : in std_logic;
+    FIRRST_i    : in std_logic;
+    FIRENA_i    : in std_logic;
+    FIROUT_o    : out std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
+    FIFOFULL_o  : out std_logic;
+    FIFOEMPTY_o : out std_logic;
+    FIRIFG_o    : out std_logic
+);
+END component;
 --------------------------------------------------------------
 
 end aux_package;
