@@ -54,10 +54,10 @@ BEGIN
 	mul_w				<=	'1' when 	opcode_i = MUL_OPC			else '0';
 
 							
-  	RegDst_ctrl_o    	<=  "01" when (rtype_w='1' or mul_w='1') else "10" when jal_w='1' else "11" when (jr_w='1' and in_intr_i) else "00";
+  	RegDst_ctrl_o    	<=  "01" when ((rtype_w='1' or mul_w='1') and not(in_intr_i)) else "10" when jal_w='1' else "11" when (jr_w='1' and in_intr_i) else "00";
  	ALUSrc_ctrl_o  		<=  lw_w OR sw_w or itype_imm_w;
 	MemtoReg_ctrl_o 	<=  "01" when lw_w='1' else "10" when lui_w='1' else "00";
-  	RegWrite_ctrl_o 	<=  (rtype_w and not jr_w) OR lw_w or itype_imm_w or lui_w or mul_w or jal_w;
+  	RegWrite_ctrl_o 	<= '1' when ((rtype_w='1' and jr_w='0') OR lw_w='1' or itype_imm_w='1' or lui_w='1' or mul_w='1' or jal_w='1' or (jr_w='1' and in_intr_i)) else '0';
   	MemRead_ctrl_o 		<=  lw_w;
    	MemWrite_ctrl_o 	<=  sw_w; 
  	Branch_ctrl_o      	<=  beq_w;

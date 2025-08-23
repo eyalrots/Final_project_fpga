@@ -80,7 +80,7 @@ BEGIN
 	shift: Shifter generic map(n=>DATA_BUS_WIDTH) port map (
 		ALUFN => alu_ctl_w,
 		x => shamt_w, -- needs to be shamt
-		y => a_input_w,
+		y => b_input_w,
 		ALUout => shift_out_w
 	);
 

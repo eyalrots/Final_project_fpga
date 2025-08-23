@@ -30,23 +30,27 @@ ENTITY basic_timer IS
 END basic_timer;
 --------------------------------------------------------------
 architecture basic_timer_arc of basic_timer is
-    signal BTCNT_w: std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-    signal HEU0_w: std_logic;
+    signal BTCNT_w: std_logic_vector(DATA_BUS_WIDTH-1 downto 0) := (others=>'0');
+    signal HEU0_w: std_logic := '0';
     signal wave: std_logic;
     signal clk_w: std_logic;
     signal en_w: std_logic;
-    signal BTCCR0_w : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-    signal BTCCR1_w : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
+    signal BTCCR0_w : std_logic_vector(DATA_BUS_WIDTH-1 downto 0) := (others=>'0');
+    signal BTCCR1_w : std_logic_vector(DATA_BUS_WIDTH-1 downto 0) := (others=>'0');
     signal BTCNT_eq_0 : std_logic;
     signal q24, q28, q32 : std_logic;
+    signal zero_vec_w    : std_logic_vector (DATA_BUS_WIDTH-1 downto 0) := (others=>'0');
 begin
+
     BTCNT_io <= BTCNT_w when (addr_bus_i=X"820" and MemRead_i='1') else (others=>'Z');
 
-    R_latch: process(BTCNT_eq_0)
+    R_latch: process(MCLK_i, BTCNT_eq_0)
     begin
-        if (BTCNT_eq_0='1') then
-            BTCCR0_w <= BTCCR0_i;
-            BTCCR1_w <= BTCCR1_i;
+        if (falling_edge(MCLK_i)) then
+            if (BTCNT_eq_0='1') then
+                BTCCR0_w <= BTCCR0_i;
+                BTCCR1_w <= BTCCR1_i;
+            end if;
         end if;
     end process;
 
@@ -98,7 +102,7 @@ begin
     output_unit: process(clk_w, BTOUTEN_i, BTOUTMD_i)
     begin
         -- HEU0_w <= '1' when (BTCNT_w=BTCCR0_w) else '0';
-        if (BTCNT_w=BTCCR0_w) then
+        if (BTCNT_w=BTCCR0_w and BTCCR0_w /= zero_vec_w) then
             HEU0_w <= '1';
         else
             HEU0_w <= '0';

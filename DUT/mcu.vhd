@@ -18,8 +18,8 @@ ENTITY mcu IS
 			INST_CNT_WIDTH : integer 	:= 16
 	);
     PORT (
-        clk_i               : std_logic;
-        rst_i               : std_logic;
+        clk_i               : IN std_logic;
+        rst_i               : IN std_logic;
         --- interrupts ---
         key1_i              : in std_logic;
         key2_i              : in std_logic;
@@ -68,25 +68,10 @@ ARCHITECTURE mcu_arc OF mcu is
     signal hex4_data_w  : std_logic_vector(3 downto 0);
     signal hex5_data_w  : std_logic_vector(3 downto 0);
     --- basic timer ---
-    signal BTCTL_w      : std_logic_vector(7 downto 0);
-    signal BTCNT_w      : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-    signal BTCCR0_w     : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-    signal BTCCR1_w     : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-    signal mclk2_w      : std_logic;
-    signal mclk4_w      : std_logic;
-    signal mclk8_w      : std_logic;
-    signal div4         : std_logic;
-    signal div8         : std_logic_vector(1 downto 0);
     signal BTIFG_w      : std_logic;
     --- FIR filter ---
-    signal FIRIN_w     : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-    signal FIROUT_w    : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-    signal FIRCTL_w    : std_logic_vector(7 downto 0);
-    signal COEF3_0_w   : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-    signal COEF7_4_w   : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-    signal fifo_clk_w  : std_logic;
-    signal fir_clk_w   : std_logic;
     signal fir_ifg_w   : std_logic;
+    signal fifo_empty_w: std_logic;
     --- interrupts ---
     signal gie_w       : std_logic;
     signal inta_w      : std_logic;
@@ -154,6 +139,8 @@ begin
 
     --- LEDs ---
     leds: led_io port map (
+        clk_i           => clk_i,
+        rst_i           => rst_i,
         MemRead_i       => mem_rd_en_w,
         MemWrite_i      => mem_wr_en_w,
         CS_i            => cs_vec_w(0),
@@ -164,6 +151,8 @@ begin
     --- hex displays ---
     A0_not_w <= not(addr_bus_w(0));
     hex0: hex_seg port map (
+        clk_i           => clk_i,
+        rst_i           => rst_i,
         MemRead_i       => mem_rd_en_w,
         MemWrite_i      => mem_wr_en_w,
         A0_i            => A0_not_w,
@@ -176,6 +165,8 @@ begin
         seg             => hex0_o
     );
     hex1: hex_seg port map (
+        clk_i           => clk_i,
+        rst_i           => rst_i,
         MemRead_i       => mem_rd_en_w,
         MemWrite_i      => mem_wr_en_w,
         A0_i            => A0_not_w,
@@ -188,6 +179,8 @@ begin
         seg             => hex1_o
     );
     hex2: hex_seg port map (
+        clk_i           => clk_i,
+        rst_i           => rst_i,
         MemRead_i       => mem_rd_en_w,
         MemWrite_i      => mem_wr_en_w,
         A0_i            => A0_not_w,
@@ -200,6 +193,8 @@ begin
         seg             => hex2_o
     );
     hex3: hex_seg port map (
+        clk_i           => clk_i,
+        rst_i           => rst_i,
         MemRead_i       => mem_rd_en_w,
         MemWrite_i      => mem_wr_en_w,
         A0_i            => A0_not_w,
@@ -212,6 +207,8 @@ begin
         seg             => hex3_o
     );
     hex4: hex_seg port map (
+        clk_i           => clk_i,
+        rst_i           => rst_i,
         MemRead_i       => mem_rd_en_w,
         MemWrite_i      => mem_wr_en_w,
         A0_i            => A0_not_w,
@@ -224,6 +221,8 @@ begin
         seg             => hex4_o
     );
     hex5: hex_seg port map (
+        clk_i           => clk_i,
+        rst_i           => rst_i,
         MemRead_i       => mem_rd_en_w,
         MemWrite_i      => mem_wr_en_w,
         A0_i            => A0_not_w,
@@ -237,151 +236,30 @@ begin
     );
 
     --- basic timer ---
-    -- registers --
-    bt_regs: process (clk_i)
-    begin
-        if (falling_edge(clk_i)) then
-            write_mem: if (mem_wr_en_w='1') then
-                case addr_bus_w is
-                    when X"81C" =>
-                        BTCTL_w <= zero_vec_w & data_bus_w(7 downto 0);
-                    when X"820" =>
-                        BTCNT_w <= data_bus_w;
-                    when X"824" =>
-                        BTCCR0_w <= data_bus_w;
-                    when X"828" =>
-                        BTCCR1_w <= data_bus_w;
-                    when others =>
-                        null;
-                end case;
-            end if;
-            read_mem: if (mem_rd_en_w='1') then
-                case addr_bus_w is
-                    when X"81C" =>
-                        data_bus_w <= zero_vec_w & BTCTL_w;
-                    when X"820" =>
-                        data_bus_w <= BTCNT_w;
-                    when X"824" =>
-                        data_bus_w <= BTCCR0_w;
-                    when X"828" =>
-                        data_bus_w <= BTCCR1_w;
-                    when others =>
-                        null;
-                end case;
-            end if;
-        end if;
-    end process;
-    -- logic --
-    div_cnt: process(clk_i,rst_i)
-    begin 
-        if (rst_i='1') then
-            mclk2_w <= '0';
-			mclk4_w <= '0';
-			mclk8_w <= '0';
-            div4 <= '0';
-            div8 <= "00";
-        end if;
-        if (rising_edge(clk_i)) then
-            mclk2_w <= not (mclk2_w);
-            div4 <= not(div4);
-			if (div4='1') then
-				mclk4_w <= not(mclk4_w);
-			end if;
-            div8 <= std_logic_vector(ieee.numeric_std.unsigned(div8) + 1);
-			if (div8="11") then
-				mclk8_w <= not(mclk8_w);
-			end if;
-        end if;
-    end process;
-
-    timer: basic_timer port map (
-        addr_bus_i      => addr_bus_w,
-        BTCCR0_i        => BTCCR0_w,
-        BTCCR1_i        => BTCCR1_w,
-        BTCLR_i         => BTCTL_w(2),
-        BTHOLD_i        => BTCTL_w(5),
-        BTSSELx_i       => BTCTL_w(4 downto 3),
-        MCLK_i          => clk_i,
-        MCLK2_i         => mclk2_w,
-        MCLK4_i         => mclk4_w,
-        MCLK8_i         => mclk8_w,
-        BTIPx_i         => BTCTL_w(1 downto 0),
-        BTOUTMD_i       => BTCTL_w(7),
-        BTOUTEN_i       => BTCTL_w(6),
-        MemWrite_i      => mem_wr_en_w,
-        MemRead_i       => mem_rd_en_w,
-        PWM_o           => pwm_o,
-        BTIFG_o         => BTIFG_w,
-        BTCNT_io         => BTCNT_w
+    timer: timer_top port map (
+        clk_i       => clk_i,
+        rst_i       => rst_i,
+        mem_rd_i    => mem_rd_en_w,
+        mem_wr_i    => mem_wr_en_w,
+        addr_bus_i  => addr_bus_w,
+        data_bus_io => data_bus_w,
+        bt_ifg_o    => BTIFG_w,
+        pwm_o       => pwm_o
     );
 
     --- FIR filter ---
-    -- clks --
-    fifo_clk_w <= clk_i;
-    fir_clk_w <= mclk8_w;
-    -- registers --
-    fir_regs: process (clk_i)
-    begin
-        if (falling_edge(clk_i)) then
-            write_mem: if (mem_wr_en_w='1') then
-                case addr_bus_w is
-                    when X"82C" =>
-                        FIRCTL_w(0) <= data_bus_w(0);
-                        FIRCTL_w(1) <= data_bus_w(1);
-                        FIRCTL_w(4) <= data_bus_w(4);
-                        FIRCTL_w(5) <= data_bus_w(5);
-                    when X"830" =>
-                        FIRIN_w <= data_bus_w;
-                    when X"838" =>
-                        COEF3_0_w <= data_bus_w;
-                    when X"83C" =>
-                        COEF7_4_w <= data_bus_w;
-                    when others => 
-                        FIRCTL_w(5) <= '0';
-                end case;
-            end if;
-            read_mem: if (mem_rd_en_w='1') then
-                case addr_bus_w is
-                    when X"82C" =>
-                        data_bus_w <= zero_vec_w & FIRCTL_w;
-                    when X"830" =>
-                        data_bus_w <= FIRIN_w;
-                    when X"834" =>
-                        data_bus_w <= FIROUT_w;
-                    when X"838" =>
-                        data_bus_w <= COEF3_0_w;
-                    when X"83C" =>
-                        data_bus_w <= COEF7_4_w;
-                    when others =>
-                        null;
-                end case;
-            end if;
-        end if;
-    end process;
-    -- logic --
-    FIR_filter: FIR port map(
-        FIRIN_i     =>  FIRIN_w,
-        coef0_i     =>  COEF3_0_w(7 downto 0),
-        coef1_i     =>  COEF3_0_w(15 downto 8),
-        coef2_i     =>  COEF3_0_w(23 downto 16),
-        coef3_i     =>  COEF3_0_w(DATA_BUS_WIDTH-1 downto 24),
-        coef4_i     =>  COEF7_4_w(7 downto 0),
-        coef5_i     =>  COEF7_4_w(15 downto 8),
-        coef6_i     =>  COEF7_4_w(23 downto 16),
-        coef7_i     =>  COEF7_4_w(DATA_BUS_WIDTH-1 downto 24),
-        FIFORST_i   =>  FIRCTL_w(4),
-        FIFOCLK_i   =>  fifo_clk_w,
-        FIFOWEN_i  =>  FIRCTL_w(5),
-        FIRCLK_i    =>  fir_clk_w,
-        FIRRST_i    =>  FIRCTL_w(1),
-        FIRENA_i    =>  FIRCTL_w(0),
-        FIROUT_o    =>  FIROUT_w,
-        FIFOFULL_o  =>  FIRCTL_w(3),
-        FIFOEMPTY_o =>  FIRCTL_w(2),
-        FIRIFG_o    =>  fir_ifg_w
+    fir_filter: fir_top port map (
+        clk_i           => clk_i,
+        rst_i           => rst_i,
+        mem_rd_i        => mem_rd_en_w,
+        mem_wr_i        => mem_wr_en_w,
+        addr_bus_i      => addr_bus_w,
+        data_bus_io     => data_bus_w,
+        fifo_empty_o    => fifo_empty_w,
+        fir_ifg_o       => fir_ifg_w
     );
 
-    ---- interrupts ---
+    -- interrupts ---
     intr_cs_w <= '1' when addr_bus_w=X"840" or addr_bus_w=X"841" else '0';
     intr: int_ctrl port map (
         clk_i           => clk_i,
@@ -399,7 +277,7 @@ begin
         MemRead_ctrl_i  => mem_rd_en_w,
         MemWrite_ctrl_i => mem_wr_en_w,
         A0_i            => addr_bus_w(0),
-        fir_empty_i     => FIRCTL_w(2),
+        fir_empty_i     => fir_ifg_w,
         INTR_o          => intr_w,
         data_bus_io     => data_bus_w
     );

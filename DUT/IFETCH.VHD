@@ -46,7 +46,7 @@ ARCHITECTURE behavior OF Ifetch IS
 	SIGNAL next_pc_w  			: STD_LOGIC_VECTOR(NEXT_PC_WIDTH-1 DOWNTO 0);
 	SIGNAL rst_flag_q			: STD_LOGIC;
 	SIGNAL inst_cnt_q 			: STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0);
-	SIGNAL pc_prev_q			: STD_LOGIC_VECTOR(PC_WIDTH-1 DOWNTO 0);  
+	SIGNAL pc_prev_q			: STD_LOGIC_VECTOR(PC_WIDTH-1 DOWNTO 0);
 BEGIN
 
 --ROM for Instruction Memory
@@ -59,7 +59,7 @@ BEGIN
 		lpm_hint => "ENABLE_RUNTIME_MOD = YES,INSTANCE_NAME = ITCM",
 		lpm_type => "altsyncram",
 		outdata_reg_a => "UNREGISTERED",
-		init_file => "C:\Users\Eyal\Architecture-Labs\Final_Project\Library\int_test1\bin\ITCM.hex",
+		init_file => "C:\Users\Eyal\Architecture-Labs\Final_Project\Library\int_test2\bin\ITCM.hex",
 		intended_device_family => "Cyclone"
 	)
 	PORT MAP (

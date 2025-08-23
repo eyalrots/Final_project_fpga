@@ -16,5 +16,6 @@ END address_decoder;
 --------------------------------------------------------------
 ARCHITECTURE address_decoder_arc OF address_decoder IS
 begin
-    cs_vec_o <= (others=>'0') when address_bus_i(11)='0' else (conv_integer(address_bus_i(4 downto 2))=>'1', others=>'0');
+    cs_vec_o <= (others=>'0') when (address_bus_i(11)='0' or (conv_integer(address_bus_i(4 downto 2))=0 and address_bus_i/=X"800")) else 
+                (conv_integer(address_bus_i(4 downto 2))=>'1', others=>'0');
 end architecture;

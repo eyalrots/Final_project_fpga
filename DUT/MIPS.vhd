@@ -80,12 +80,13 @@ ARCHITECTURE structure OF MIPS IS
 	--- tri_bus ---
 	signal mem_read_en_w	: std_logic;
 	--- interrupts ---
+	signal f_inst_w			: std_logic_vector (DATA_BUS_WIDTH-1 downto 0);
 	signal int_type_addr_w	: std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-	signal mod_jr_w			: std_logic_vector(DATA_BUS_WIDTH-1 downto 0) := X"D8000000";
-	signal mod_lw_start_w	: std_logic_vector(15 downto 0) := X"8F60";
-	signal jr_out_intr_w	: std_logic_vector(10 downto 0) := "00100011011";
-	signal inta_w			: std_logic;
-	signal gie_w			: std_logic;
+	signal mod_jr_w			: std_logic_vector(DATA_BUS_WIDTH-1 downto 0) := X"03600008";
+	signal mod_lw_start_w	: std_logic_vector(15 downto 0) := X"8C1B";
+	signal inta_w			: std_logic := '1';
+	signal d_gie_w			: std_logic;
+	signal m_gie_w			: std_logic := '1';
 	signal cur_inst_w		: std_logic_vector(1 downto 0) := "00";
 	signal not_in_intr_w	: boolean := true;
 
@@ -105,10 +106,11 @@ BEGIN
 
 	--- tri bus ---
 	mem_read_en_w 	<= mem_read_w and not(alu_result_w(DTCM_ADDR_WIDTH-1));
-	data_bus_io 	<= dtcm_data_rd_w when mem_read_en_w else 
-						read_data2_w when mem_write_w else
+	data_bus_io 	<= dtcm_data_rd_w when (mem_read_en_w='1' and (not_in_intr_w or cur_inst_w="01")) else 
+						read_data2_w when (mem_write_w='1' and not_in_intr_w) else
 						(others=>'Z');
-	addr_bus_o 		<= alu_result_w(DTCM_ADDR_WIDTH-1 DOWNTO 0);
+	addr_bus_o 		<= alu_result_w(DTCM_ADDR_WIDTH-1 DOWNTO 0) when (mem_read_w = '1' or mem_write_w='1') else
+						(others =>'0'); 
 	MemRead_ctrl_o 	<= mem_read_w;
 	MemWrite_ctrl_o	<= 	mem_write_w;
 
@@ -118,15 +120,14 @@ BEGIN
 		if (rising_edge(clk_i)) then
 			if (INTR_i='1') then
 				inta_w <= '0';
-				gie_w <= '0';
+				m_gie_w <= '0';
 				not_in_intr_w <= false;
 			elsif (inta_w='0') then
 				inta_w <= '1';
 			elsif (cur_inst_w = "10") then
 				not_in_intr_w <= true;
-				cur_inst_w <= "00";
-			elsif (instruction_w(31 downto 21)=jr_out_intr_w and not_in_intr_w) then
-				gie_w <= '1';
+			elsif (instruction_w=mod_jr_w and not_in_intr_w) then
+				m_gie_w <= '1';
 			end if;
 		end if;
 	end process;
@@ -141,17 +142,19 @@ BEGIN
 					cur_inst_w <= "01"; 
 				elsif (cur_inst_w = "01") then
 					cur_inst_w <= "10";
+				elsif (cur_inst_w = "10") then
+					cur_inst_w <= "00";
 				end if;
 			end if;
 		end if;
 	end process;
 
-	int_type_addr_w <= data_bus_io when inta_w='0' else (others=>'0');
-	instruction_w <= instruction_w when (not_in_intr_w) else 
-						mod_lw_start_w & X"00" & int_type_addr_w(7 downto 0) when cur_inst_w = 1 else
-						mod_jr_w when cur_inst_w = 2;
+	int_type_addr_w <= data_bus_io when inta_w='0' else int_type_addr_w;
+	instruction_w <= f_inst_w when (not_in_intr_w) else 
+						mod_lw_start_w & X"00" & "00" & int_type_addr_w(7 downto 2) when cur_inst_w = "01" else
+						mod_jr_w when cur_inst_w = "10";
 	INTA_o <= inta_w;
-	GIE_o <= gie_w;
+	GIE_o <= m_gie_w and d_gie_w;
 	
 	-- connect the PLL component
 	G0:
@@ -185,7 +188,7 @@ BEGIN
 		JR_ctrl_i		=> JR_ctrl_w,
 		zero_i 			=> zero_w,
 		pc_o 			=> pc_o,
-		instruction_o 	=> instruction_w,
+		instruction_o 	=> f_inst_w,
     	pc_plus4_o	 	=> pc_plus4_w,
 		inst_cnt_o		=> inst_cnt_w
 	);
@@ -197,7 +200,6 @@ BEGIN
 	PORT MAP (	
 			clk_i 				=> MCLK_w,  
 			rst_i 				=> rst_i,
-			gie_i				=> gie_w,
         	instruction_i 		=> instruction_w,
 			alu_result_i 		=> alu_result_w,
 			RegWrite_ctrl_i 	=> reg_write_w,
@@ -208,6 +210,7 @@ BEGIN
 			read_data1_o 		=> read_data1_w,
         	read_data2_o 		=> read_data2_w,
 			sign_extend_o 		=> sign_extend_w,
+			gie_o				=> d_gie_w,
 			data_bus_i			=> data_bus_io 
 		);
 

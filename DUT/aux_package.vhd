@@ -113,7 +113,6 @@ package aux_package is
 		PC_WIDTH		: integer := 10
 	);
 	PORT(	clk_i,rst_i		: IN 	STD_LOGIC;
-			gie_i			: in	std_logic;
 			instruction_i 	: IN 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			alu_result_i	: IN 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			RegWrite_ctrl_i : IN 	std_logic;
@@ -124,6 +123,7 @@ package aux_package is
 			read_data1_o	: OUT 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			read_data2_o	: OUT 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			sign_extend_o 	: OUT 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+			gie_o			: out	std_logic;
 			--- tri bus ---
 			data_bus_i 		: in std_logic_vector(DATA_BUS_WIDTH-1 downto 0)		 
 	);
@@ -183,6 +183,7 @@ package aux_package is
 			DATA_BUS_WIDTH : integer := 32
 		);
 		PORT (
+        	clk_i, rst_i: in std_logic;
 			MemRead_i   : in std_logic;
 			MemWrite_i  : in std_logic;
 			A0_i        : in std_logic;
@@ -197,6 +198,7 @@ package aux_package is
 			DATA_BUS_WIDTH : integer := 32
 		);
 		PORT (
+			clk_i, rst_i: in std_logic;
 			MemRead_i   : in std_logic;
 			MemWrite_i  : in std_logic;
 			CS_i        : in std_logic;
@@ -241,8 +243,8 @@ package aux_package is
 			INST_CNT_WIDTH : integer 	:= 16
 		);
 		PORT (
-			clk_i   			: std_logic;
-			rst_i   			: std_logic;
+			clk_i   			: in std_logic;
+			rst_i   			: in std_logic;
 			--- interrupts ---
 			key1_i              : in std_logic;
 			key2_i              : in std_logic;
@@ -298,6 +300,20 @@ package aux_package is
         	BTCNT_io    : inout std_logic_vector(DATA_BUS_WIDTH-1 downto 0)
 		);
 	END component;
+--------------------------------------------------------------
+component timer_top
+    GENERIC (
+        DATA_BUS_WIDTH : INTEGER := 32);
+    PORT (
+        clk_i, rst_i: in    std_logic;
+        mem_rd_i    : in    std_logic;
+        mem_wr_i    : in    std_logic;
+        addr_bus_i  : in    std_logic_vector(11 downto 0);
+        data_bus_io : inout std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
+        bt_ifg_o    : out   std_logic;
+        pwm_o       : out   std_logic
+    );
+END component;
 --------------------------------------------------------------
 component pulse_synchronizer
     PORT ( 
@@ -377,6 +393,20 @@ PORT (
     FIFOEMPTY_o : out std_logic;
     FIRIFG_o    : out std_logic
 );
+END component;
+--------------------------------------------------------------
+component fir_top
+    GENERIC (
+        DATA_BUS_WIDTH : INTEGER := 32);
+    PORT (
+        clk_i, rst_i    : in    std_logic;
+        mem_rd_i        : in    std_logic;
+        mem_wr_i        : in    std_logic;
+        addr_bus_i      : in    std_logic_vector(11 downto 0);
+        data_bus_io     : inout std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
+        fifo_empty_o    : out   std_logic;
+        fir_ifg_o       : out   std_logic
+    );
 END component;
 --------------------------------------------------------------
 component int_ctrl

@@ -15,7 +15,6 @@ ENTITY Idecode IS
 		PC_WIDTH		: integer := 10
 	);
 	PORT(	clk_i,rst_i		: IN 	STD_LOGIC;
-			gie_i			: in	std_logic;
 			instruction_i 	: IN 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			--dtcm_data_rd_i 	: IN 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			alu_result_i	: IN 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
@@ -27,6 +26,7 @@ ENTITY Idecode IS
 			read_data1_o	: OUT 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			read_data2_o	: OUT 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			sign_extend_o 	: OUT 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+			gie_o			: out	std_logic;
 			--- tri bus ---
 			data_bus_i 		: in std_logic_vector(DATA_BUS_WIDTH-1 downto 0)	 
 	);
@@ -47,7 +47,6 @@ TYPE register_file IS ARRAY (0 TO 31) OF STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNT
 	SIGNAL imm_value_w			: STD_LOGIC_VECTOR( 15 DOWNTO 0 );
 	signal zero_vec_w			: std_logic_vector(DATA_BUS_WIDTH-1 downto PC_WIDTH) := (others=>'0');
 	signal zero_vec2_w			: std_logic_vector(15 downto 0) := (others=>'0');
-	signal gie_w				: std_logic_vector(0 downto 0);
 
 BEGIN
 	rs_register_w 			<= instruction_i(25 DOWNTO 21);
@@ -78,7 +77,8 @@ BEGIN
 							(others=>'0') when others;
 
 	write_reg_data_w <= zero_vec_w & pc_plus_4_i when Jal_ctrl_i = '1' else 
-						(0=>'1', 1=>'1', OTHERS=>'0') WHEN write_reg_mux_w=X"B71B00" else
+						(0=>'1', 1=>'1', OTHERS=>'0') WHEN write_reg_mux_w=X"824" else
+						(1=>'1', 2=>'1', others=>'0') when write_reg_mux_w=X"C35" else
 						write_reg_mux_w;
 	
 	-- Sign Extend 16-bits to 32-bits
@@ -86,7 +86,7 @@ BEGIN
 						X"FFFF" & imm_value_w;
 
 	--- set GIE bit in $k0[0] ---
-	gie_w <= "1" when (gie_i='1' and RF_q(26)(0)='1') else "0";
+	gie_o <= RF_q(26)(0);
 
 	process(clk_i,rst_i)
 	begin
@@ -99,8 +99,6 @@ BEGIN
 			if (RegWrite_ctrl_i = '1' AND write_reg_addr_w /= 0) then
 				RF_q(CONV_INTEGER(write_reg_addr_w)) <= write_reg_data_w;
 				-- index is integer type so we must use conv_integer for type casting
-			else
-				RF_q(26) <= RF_q(26)(DATA_BUS_WIDTH-1 downto 1) & gie_w;
 			end if;
 		end if;
 end process;

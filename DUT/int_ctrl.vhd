@@ -33,37 +33,103 @@ architecture int_ctrl_arc of int_ctrl is
 TYPE type_register IS ARRAY (0 TO 9) OF STD_LOGIC_VECTOR(7 DOWNTO 0);
     signal TYPE_r      : type_register := (X"00",X"04",X"08",X"0C",X"10",X"14",X"18",X"1C"
                                             ,X"20",X"24");
-    signal IE_r      : std_logic_vector(7 downto 0);
-    signal IFG_r      : std_logic_vector(7 downto 0);
-    signal highest_priority_w : integer range 0 to 7;
+    signal IE_r      : std_logic_vector(7 downto 0) := (others => '0');
+    signal IFG_r      : std_logic_vector(7 downto 0) := (others => '0');
+    signal highest_priority_w : integer := 0;
     signal enabled_flags_w  : std_logic_vector(7 downto 0);
     signal zero_vec_w       : std_logic_vector(23 downto 0) := (others=>'0');
     signal cur_type         : std_logic_vector(7 downto 0);
+    signal rx_clr_w         : std_logic := '0';
+    signal rx_irq_w         : std_logic := '0';
+    signal tx_clr_w         : std_logic := '0';
+    signal tx_irq_w         : std_logic := '0';
+    signal bt_clr_w         : std_logic := '0';
+    signal bt_irq_w         : std_logic := '0';
+    signal fir_clr_w        : std_logic := '0';
+    signal fir_irq_w         : std_logic := '0';
+    signal key1_irq_w         : std_logic := '0';
+    signal key2_irq_w         : std_logic := '0';
+    signal key3_irq_w         : std_logic := '0';
+    signal clk_cnt_w        : integer := 0;
 begin
 
-    rd_wr_regs: process (clk_i)
+    rx_ifg: process (RX_INT_i, rx_clr_w)
     begin
+        if (rx_clr_w='1') then
+            rx_irq_w <= '0';
+        elsif (RX_INT_i='1') then
+            rx_irq_w <= '1';
+        end if;
     end process;
+
+    tx_ifg: process (TX_INT_i, tx_clr_w)
+    begin
+        if (tx_clr_w='1') then
+            tx_irq_w <= '0';
+        elsif (TX_INT_i='1') then
+            tx_irq_w <= '1';
+        end if;
+    end process;
+
+    bt_ifg: process (BT_INT_i, bt_clr_w)
+    begin
+        if (bt_clr_w='1') then
+            bt_irq_w <= '0';
+        elsif (BT_INT_i='1') then
+            bt_irq_w <= '1';
+        end if;
+    end process;
+
+    fir_ifg: process (FIR_INT_i, fir_clr_w)
+    begin
+        if (fir_clr_w='1') then
+            fir_irq_w <= '0';
+        elsif (FIR_INT_i='1') then
+            fir_irq_w <= '1';
+        end if;
+    end process;
+
+
 
     ifg_handle: process (clk_i, rst_i)
     begin
         if (rst_i='1') then
-            IFG_r <= (others=>'0');
+            IFG_r   <= (others=>'0');
+            IE_r    <= (others=>'0');
         elsif (falling_edge(clk_i)) then
             --- set flag according to interrupt ---
-            if RX_INT_i   = '1' then IFG_r(0) <= '1'; end if;
-            if TX_INT_i   = '1' then IFG_r(1) <= '1'; end if;
-            if BT_INT_i   = '1' then IFG_r(2) <= '1'; end if;
-            if KEY1_INT_i = '1' then IFG_r(3) <= '1'; end if;
-            if KEY2_INT_i = '1' then IFG_r(4) <= '1'; end if;
-            if KEY3_INT_i = '1' then IFG_r(5) <= '1'; end if;
-            if FIR_INT_i  = '1' then IFG_r(6) <= '1'; end if;
+            if KEY1_INT_i = '1' then key1_irq_w <= '1'; end if;
+            if KEY2_INT_i = '1' then key2_irq_w <= '1'; end if;
+            if KEY3_INT_i = '1' then key3_irq_w <= '1'; end if;
+            --- clear clear flags ---
+            if (rx_clr_w='1') then
+                rx_clr_w <= '0';
+            end if;
+            if (tx_clr_w='1') then
+                tx_clr_w <= '0';
+            end if;
+            if (bt_clr_w='1') then
+                bt_clr_w <= '0';
+            end if;
+            if (fir_clr_w='1') then
+                fir_clr_w <= '0';
+            end if;
             --- set handled falg to 0 ---
             if (INTA_i = '0') then
+                clk_cnt_w <= 1;
+            elsif (clk_cnt_w=1) then
                 if (highest_priority_w=1) then
-                    IFG_r(highest_priority_w) <= '0';
-                else
-                    IFG_r(highest_priority_w - 2) <= '0';
+                    rx_clr_w <= '1';
+                    clk_cnt_w <= 0;
+                elsif (highest_priority_w=3) then
+                    tx_clr_w <= '1';
+                    clk_cnt_w <= 0;
+                elsif (highest_priority_w=4) then
+                    bt_clr_w <= '1';
+                    clk_cnt_w <= 0;
+                elsif (highest_priority_w=8) then
+                    fir_clr_w <= '1';
+                    clk_cnt_w <= 0;
                 end if;
             end if;
             --- read / write internal registers ---
@@ -73,39 +139,47 @@ begin
                         IE_r <= data_bus_io(7 downto 0);
                     else
                         IFG_r <= data_bus_io(7 downto 0);
-                    end if;
-                elsif (MemRead_ctrl_i='1') then
-                    if (A0_i='0') then
-                        data_bus_io <= zero_vec_w & IE_r;
-                    else
-                        data_bus_io <= zero_vec_w & IFG_r;
+                        rx_clr_w   <= not(data_bus_io(0));
+                        tx_clr_w   <= not(data_bus_io(1));
+                        bt_clr_w   <= not(data_bus_io(2));
+                        key1_irq_w <= data_bus_io(3);
+                        key2_irq_w <= data_bus_io(4);
+                        key3_irq_w <= data_bus_io(5);
+                        fir_clr_w  <= not(data_bus_io(6));
                     end if;
                 end if;
+            else
+                --- set highest priority flag ---
+                IFG_r <= enabled_flags_w and IE_r;
             end if;
         end if;
     end process;
+    enabled_flags_w <= (0=>rx_irq_w, 1=> tx_irq_w, 2=> bt_irq_w, 3=> key1_irq_w, 
+                        4=> key2_irq_w, 5=> key3_irq_w, 6=> fir_irq_w, 7=> '0');
+    data_bus_io <= zero_vec_w & IE_r when (A0_i = '0' and CS_i='1' and  MemRead_ctrl_i='1') else 
+                    zero_vec_w & IFG_r when (A0_i = '1' and CS_i='1' and  MemRead_ctrl_i='1') else
+                    zero_vec_w & cur_type when INTA_i = '0' else 
+                    (others => 'Z');
 
-    --- set highest priority flag ---
-    enabled_flags_w <= IFG_r and IE_r;
 
-    priority: process (enabled_flags_w)
+    priority: process (IFG_r)
     begin
-        if    enabled_flags_w(0) = '1' then highest_priority_w <= 1;
-        elsif enabled_flags_w(1) = '1' then highest_priority_w <= 3;
-        elsif enabled_flags_w(2) = '1' then highest_priority_w <= 4;
-        elsif enabled_flags_w(3) = '1' then highest_priority_w <= 5;
-        elsif enabled_flags_w(4) = '1' then highest_priority_w <= 6;
-        elsif enabled_flags_w(5) = '1' then highest_priority_w <= 7;
-        elsif enabled_flags_w(6) = '1' then highest_priority_w <= 8;
-        else                                highest_priority_w <= 9; -- Default case
+        if    IFG_r(0) = '1' then highest_priority_w <= 1;
+        elsif IFG_r(1) = '1' then highest_priority_w <= 3;
+        elsif IFG_r(2) = '1' then highest_priority_w <= 4;
+        elsif IFG_r(3) = '1' then highest_priority_w <= 5;
+        elsif IFG_r(4) = '1' then highest_priority_w <= 6;
+        elsif IFG_r(5) = '1' then highest_priority_w <= 7;
+        elsif IFG_r(6) = '1' then highest_priority_w <= 8;
+        else                      highest_priority_w <= 9; -- Default case
         end if;
     end process;
 
     --- set INTR=1 when there is an interrupt to handle ---
-    INTR_o <= '1' when (enabled_flags_w /= X"00" and GIE = '1') else '0';
+    INTR_o <= '1' when (IFG_r /= X"00" and GIE = '1') else '0';
     
     -- write type value of highest priority to data bus ---
     cur_type <= TYPE_r(highest_priority_w + 1) when (fir_empty_i='0' and highest_priority_w=8) else
                 TYPE_r(highest_priority_w); -- Rx should coose one of two!
-    data_bus_io <= cur_type when INTA_i = '0' else (others => 'Z');
+    -- data_bus_io <= zero_vec_w & cur_type when INTA_i = '0' else (others => 'Z');
 end architecture;
