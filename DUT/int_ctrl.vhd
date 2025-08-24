@@ -57,7 +57,7 @@ begin
     begin
         if (rx_clr_w='1') then
             rx_irq_w <= '0';
-        elsif (RX_INT_i='1') then
+        elsif (rising_edge(RX_INT_i)) then
             rx_irq_w <= '1';
         end if;
     end process;
@@ -66,7 +66,7 @@ begin
     begin
         if (tx_clr_w='1') then
             tx_irq_w <= '0';
-        elsif (TX_INT_i='1') then
+        elsif (rising_edge(TX_INT_i)) then
             tx_irq_w <= '1';
         end if;
     end process;
@@ -75,7 +75,7 @@ begin
     begin
         if (bt_clr_w='1') then
             bt_irq_w <= '0';
-        elsif (BT_INT_i='1') then
+        elsif (rising_edge(BT_INT_i)) then
             bt_irq_w <= '1';
         end if;
     end process;
@@ -84,7 +84,7 @@ begin
     begin
         if (fir_clr_w='1') then
             fir_irq_w <= '0';
-        elsif (FIR_INT_i='1') then
+        elsif (rising_edge(FIR_INT_i)) then
             fir_irq_w <= '1';
         end if;
     end process;
@@ -129,6 +129,8 @@ begin
                     clk_cnt_w <= 0;
                 elsif (highest_priority_w=8) then
                     fir_clr_w <= '1';
+                    clk_cnt_w <= 0;
+                else
                     clk_cnt_w <= 0;
                 end if;
             end if;

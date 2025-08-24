@@ -151,7 +151,7 @@ BEGIN
 
 	int_type_addr_w <= data_bus_io when inta_w='0' else int_type_addr_w;
 	instruction_w <= f_inst_w when (not_in_intr_w) else 
-						mod_lw_start_w & X"00" & "00" & int_type_addr_w(7 downto 2) when cur_inst_w = "01" else
+						mod_lw_start_w & X"00" & int_type_addr_w(7 downto 0) when cur_inst_w = "01" else
 						mod_jr_w when cur_inst_w = "10";
 	INTA_o <= inta_w;
 	GIE_o <= m_gie_w and d_gie_w;
@@ -267,7 +267,7 @@ BEGIN
 			PORT MAP (	
 				clk_i 				=> MCLK_w,  
 				rst_i 				=> rst_i,
-				dtcm_addr_i 		=> alu_result_w(DTCM_ADDR_WIDTH-1 DOWNTO 0), -- increment memory address by 4
+				dtcm_addr_i 		=> alu_result_w((DTCM_ADDR_WIDTH+2)-1 DOWNTO 2), -- increment memory address by 4
 				dtcm_data_wr_i 		=> read_data2_w,
 				MemRead_ctrl_i 		=> mem_read_w, 
 				MemWrite_ctrl_i 	=> mem_write_w,

@@ -125,28 +125,30 @@ BEGIN
 		  wait;
     end process;
 
--- 	KEYS :
--- 	process
---   begin
--- 	key1_tb_i <= '0';
--- 	key2_tb_i <= '0';
--- 	key3_tb_i <= '0';
--- 	wait for 3000 ns;
--- 	key1_tb_i <= '1';
--- 	wait for 100 ns;
--- 	key1_tb_i <= '0';
+	KEYS :
+	process
+  begin
+	-- key1_tb_i <= '0';
+	-- key2_tb_i <= '0';
+	-- key3_tb_i <= '0';
+	-- wait for 6100 ns;
+	-- key1_tb_i <= '1';
+	-- key2_tb_i <= '1';
+	-- wait for 100 ns;
+	-- key1_tb_i <= '0';
+	-- key2_tb_i <= '0';
 
--- 	wait for 3000 ns;
--- 	key2_tb_i <= '1';
--- 	wait for 100 ns;
--- 	key2_tb_i <= '0';
+	-- wait for 3000 ns;
+	-- key2_tb_i <= '1';
+	-- wait for 100 ns;
+	-- key2_tb_i <= '0';
 	
--- 	wait for 3000 ns;
--- 	key3_tb_i <= '1';
--- 	wait for 100 ns;
--- 	key3_tb_i <= '0';
--- 	wait;
---   end process;
+	-- wait for 3000 ns;
+	-- key3_tb_i <= '1';
+	-- wait for 100 ns;
+	-- key3_tb_i <= '0';
+	wait;
+  end process;
 
   sw_tb_i<= (1=>'1', others=>'0');
 --------------------------------------------------------------------		

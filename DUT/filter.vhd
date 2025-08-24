@@ -36,7 +36,7 @@ architecture filter_arch of filter is
     signal x_n_5    : std_logic_vector(W-1 downto 0);
     signal x_n_6    : std_logic_vector(W-1 downto 0);
     signal x_n_7    : std_logic_vector(W-1 downto 0);
-    signal y_n_1    : std_logic_vector(W+Q-1 downto 0);
+    signal y_n_1    : std_logic_vector(W+Q-1 downto 0) := (others=>'0');
     signal mul_1_w  : ieee.numeric_std.unsigned(W+Q-1 downto 0);
     signal mul_2_w  : ieee.numeric_std.unsigned(W+Q-1 downto 0);
     signal mul_3_w  : ieee.numeric_std.unsigned(W+Q-1 downto 0);
@@ -95,6 +95,7 @@ begin
                 data_o <= zero_vec2_w & y_n_1(DATA_BUS_WIDTH-1 downto q);
                 ifg_o <= '1';
             else
+                data_o <= (others=>'0');
                 ifg_o <= '0';
             end if;
         end if;

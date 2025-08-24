@@ -37,7 +37,7 @@ ARCHITECTURE FIR_arc OF FIR is
     signal data_out_w   : std_logic_vector(W-1 downto 0) := (others=>'0');
     signal fifo_ren_w   : std_logic;
     signal calc_ifg_w   : std_logic;
-    signal fifo_empty_w : std_logic;
+    signal fifo_empty_w : std_logic := '0';
 begin
 
     p_syn: pulse_synchronizer port map (
@@ -76,5 +76,5 @@ begin
     );
 
     FIRIFG_o <= '1' when ((calc_ifg_w='1' and fifo_ren_w='1') or (fifo_empty_w='1')) else '0';
-    FIFOEMPTY_o <= fifo_empty_w;
+    FIFOEMPTY_o <= '1' when fifo_empty_w='1' else '0';
 end architecture;

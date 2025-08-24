@@ -21,7 +21,7 @@ END fir_top;
 --------------------------------------------------------------
 architecture fir_top_arc of fir_top is
     signal FIRIN_w      : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-    signal FIROUT_w     : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
+    signal FIROUT_w     : std_logic_vector(DATA_BUS_WIDTH-1 downto 0) := (others=>'0');
     signal FIRCTL_w     : std_logic_vector(7 downto 0);
     signal COEF3_0_w    : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
     signal COEF7_4_w    : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
@@ -111,7 +111,7 @@ begin
         coef7_i     =>  COEF7_4_w(DATA_BUS_WIDTH-1 downto 24),
         FIFORST_i   =>  FIRCTL_w(4),
         FIFOCLK_i   =>  clk_i,
-        FIFOWEN_i  =>  FIRCTL_w(5),
+        FIFOWEN_i   =>  FIRCTL_w(5),
         FIRCLK_i    =>  mclk8_w,
         FIRRST_i    =>  FIRCTL_w(1),
         FIRENA_i    =>  FIRCTL_w(0),
