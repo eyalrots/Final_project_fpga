@@ -29,7 +29,8 @@ PORT (
     FIROUT_o    : out std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
     FIFOFULL_o  : out std_logic;
     FIFOEMPTY_o : out std_logic;
-    FIRIFG_o    : out std_logic
+    fifo_ifg_o  : out std_logic;
+    fir_ifg_o    : out std_logic
 );
 END FIR;
 --------------------------------------------------------------
@@ -37,6 +38,7 @@ ARCHITECTURE FIR_arc OF FIR is
     signal data_out_w   : std_logic_vector(W-1 downto 0) := (others=>'0');
     signal fifo_ren_w   : std_logic;
     signal calc_ifg_w   : std_logic;
+    signal new_out_w    : std_logic := '0';
     signal fifo_empty_w : std_logic := '0';
 begin
 
@@ -55,6 +57,7 @@ begin
         FIFOREN_i   => fifo_ren_w,
         FIFOFULL_o  => FIFOFULL_o,
         FIFOEMPTY_o => fifo_empty_w,
+        new_out_o   => new_out_w,
         DATAOUT_o   => data_out_w
     );
 
@@ -71,10 +74,12 @@ begin
         FIRCLK_i    => FIRCLK_i,
         FIRRST_i    => FIRRST_i,
         FIRENA_i    => FIRENA_i,
+        new_out_i   => new_out_w,
         ifg_o       => calc_ifg_w,
         data_o      => FIROUT_o
     );
 
-    FIRIFG_o <= '1' when ((calc_ifg_w='1' and fifo_ren_w='1') or (fifo_empty_w='1')) else '0';
+    fir_ifg_o <= '1' when calc_ifg_w='1' else '0';
+    fifo_ifg_o <= '1' when fifo_empty_w='1' else '0';
     FIFOEMPTY_o <= '1' when fifo_empty_w='1' else '0';
 end architecture;

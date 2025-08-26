@@ -24,7 +24,7 @@ ARCHITECTURE arc_shift OF Shifter IS
 BEGIN
 
 	init: for i in 0 to n-1 generate
-		y_local_w(i) <= y(i) when (ALUFN(1) = '0') else y(n-1-i);
+		y_local_w(i) <= y(i) when (ALUFN(1) = '1') else y(n-1-i);
 	end generate;
 
 	mux_0: with x(0) select
@@ -48,7 +48,7 @@ BEGIN
 				"0000000000000000" & mux3_w(n-1 downto 16) when others;
 
 	finish: for i in 0 to n-1 generate
-		y_out_w(i) <= mux4_w(i) when (ALUFN(0) ='0') else mux4_w(n-1-i);
+		y_out_w(i) <= mux4_w(i) when (ALUFN(1) ='1') else mux4_w(n-1-i);
 	end generate;
 
 	ALUout <= y_out_w;

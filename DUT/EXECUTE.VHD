@@ -85,7 +85,7 @@ BEGIN
 	);
 
 
-	PROCESS (alu_ctl_w, a_input_w, b_input_w, a_mul_w, b_mul_w)
+	PROCESS (alu_ctl_w, a_input_w, b_input_w, a_mul_w, b_mul_w, shift_out_w)
 		BEGIN		
 		CASE alu_ctl_w IS	-- Select ALU operation
 							-- ALU performs ALUresult = A_input + B_input

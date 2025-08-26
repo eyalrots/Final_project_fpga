@@ -36,7 +36,7 @@ begin
         end if;
     end process;
 
-    data_bus_io <= data_w when read_en='1' else (others => 'Z');
+    data_bus_io <= data_w when (read_en='1') else (others => 'Z');
 
     data_o <= data_w(3 downto 0);
 end architecture;

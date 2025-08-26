@@ -44,7 +44,7 @@ package cond_comilation_package is
 	constant G_MODELSIM	: integer 			:= 1;
 	constant G_WORD_GRANULARITY : boolean 	:= True;
 	constant G_ADDRWIDTH : integer 			:= MODELSIM_M9K_ADDRWIDTH;
-	constant G_DATA_WORDS_NUM : integer 	:= MODELSIM_M9K_MEM_WORDS_NUM;
+	constant G_DATA_WORDS_NUM : integer 	:= 1024;
 --------------------------------------------------------
 
 end cond_comilation_package;

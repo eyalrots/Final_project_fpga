@@ -40,6 +40,7 @@ LIBRARY altera_mf;
 USE altera_mf.all;
 
 ENTITY PLL IS
+	generic (DIVIDE_BY : natural := 2);
 	PORT
 	(
 		areset		: IN STD_LOGIC  := '0';
@@ -138,7 +139,7 @@ BEGIN
 
 	altpll_component : altpll
 	GENERIC MAP (
-		clk0_divide_by => 2,
+		clk0_divide_by => DIVIDE_BY,
 		clk0_duty_cycle => 50,
 		clk0_multiply_by => 1,
 		clk0_phase_shift => "0",

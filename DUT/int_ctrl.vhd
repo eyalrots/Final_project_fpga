@@ -16,6 +16,7 @@ ENTITY int_ctrl IS
         KEY2_INT_i      : in std_logic;
         KEY3_INT_i      : in std_logic;
         FIR_INT_i       : in std_logic;
+        FIFO_INT_i      : in std_logic;
         CS_i            : in std_logic;
         INTA_i          : in std_logic;
         GIE             : in std_logic;
@@ -47,6 +48,11 @@ TYPE type_register IS ARRAY (0 TO 9) OF STD_LOGIC_VECTOR(7 DOWNTO 0);
     signal bt_irq_w         : std_logic := '0';
     signal fir_clr_w        : std_logic := '0';
     signal fir_irq_w         : std_logic := '0';
+    signal fifo_clr_w        : std_logic := '0';
+    signal fifo_irq_w         : std_logic := '0';
+    signal firo_irq_w          : std_logic := '0';
+    signal fir_int_en_w        : std_logic := '0';
+    signal fifo_int_en_w        : std_logic := '0';
     signal key1_irq_w         : std_logic := '0';
     signal key2_irq_w         : std_logic := '0';
     signal key3_irq_w         : std_logic := '0';
@@ -89,6 +95,18 @@ begin
         end if;
     end process;
 
+    fifo_ifg: process (FIFO_INT_i, fifo_clr_w)
+    begin
+        if (fifo_clr_w='1') then
+            fifo_irq_w <= '0';
+        elsif (rising_edge(FIFO_INT_i)) then
+            fifo_irq_w <= '1';
+        end if;
+    end process;
+
+    firo_irq_w <= '1' when (fifo_irq_w='1' or fir_irq_w='1') else '0';
+    fir_int_en_w <= IE_r(6) and fir_irq_w;
+    fifo_int_en_w <= IE_r(6) and fifo_irq_w;
 
 
     ifg_handle: process (clk_i, rst_i)
@@ -114,6 +132,9 @@ begin
             if (fir_clr_w='1') then
                 fir_clr_w <= '0';
             end if;
+            if (fifo_clr_w='1') then
+                fifo_clr_w <= '0';
+            end if;
             --- set handled falg to 0 ---
             if (INTA_i = '0') then
                 clk_cnt_w <= 1;
@@ -128,6 +149,9 @@ begin
                     bt_clr_w <= '1';
                     clk_cnt_w <= 0;
                 elsif (highest_priority_w=8) then
+                    fifo_clr_w <= '1';
+                    clk_cnt_w <= 0;
+                elsif (highest_priority_w=9) then 
                     fir_clr_w <= '1';
                     clk_cnt_w <= 0;
                 else
@@ -148,6 +172,7 @@ begin
                         key2_irq_w <= data_bus_io(4);
                         key3_irq_w <= data_bus_io(5);
                         fir_clr_w  <= not(data_bus_io(6));
+                        fifo_clr_w <= not(data_bus_io(6));
                     end if;
                 end if;
             else
@@ -157,14 +182,14 @@ begin
         end if;
     end process;
     enabled_flags_w <= (0=>rx_irq_w, 1=> tx_irq_w, 2=> bt_irq_w, 3=> key1_irq_w, 
-                        4=> key2_irq_w, 5=> key3_irq_w, 6=> fir_irq_w, 7=> '0');
+                        4=> key2_irq_w, 5=> key3_irq_w, 6=> firo_irq_w, 7=> '0');
     data_bus_io <= zero_vec_w & IE_r when (A0_i = '0' and CS_i='1' and  MemRead_ctrl_i='1') else 
                     zero_vec_w & IFG_r when (A0_i = '1' and CS_i='1' and  MemRead_ctrl_i='1') else
                     zero_vec_w & cur_type when INTA_i = '0' else 
                     (others => 'Z');
 
 
-    priority: process (IFG_r)
+    priority: process (IFG_r, fir_int_en_w, fifo_int_en_w)
     begin
         if    IFG_r(0) = '1' then highest_priority_w <= 1;
         elsif IFG_r(1) = '1' then highest_priority_w <= 3;
@@ -172,8 +197,8 @@ begin
         elsif IFG_r(3) = '1' then highest_priority_w <= 5;
         elsif IFG_r(4) = '1' then highest_priority_w <= 6;
         elsif IFG_r(5) = '1' then highest_priority_w <= 7;
-        elsif IFG_r(6) = '1' then highest_priority_w <= 8;
-        else                      highest_priority_w <= 9; -- Default case
+        elsif (IFG_r(6) and fifo_irq_w) = '1' then highest_priority_w <= 8;
+        elsif (IFG_r(6) and fir_irq_w) = '1' then highest_priority_w <= 9;
         end if;
     end process;
 
@@ -181,7 +206,6 @@ begin
     INTR_o <= '1' when (IFG_r /= X"00" and GIE = '1') else '0';
     
     -- write type value of highest priority to data bus ---
-    cur_type <= TYPE_r(highest_priority_w + 1) when (fir_empty_i='0' and highest_priority_w=8) else
-                TYPE_r(highest_priority_w); -- Rx should coose one of two!
+    cur_type <= TYPE_r(highest_priority_w); -- Rx should coose one of two!
     -- data_bus_io <= zero_vec_w & cur_type when INTA_i = '0' else (others => 'Z');
 end architecture;

@@ -74,7 +74,6 @@ ARCHITECTURE structure OF MIPS IS
 	signal Jal_ctrl_w		: std_logic;
 	SIGNAL alu_op_w 		: STD_LOGIC_VECTOR(1 DOWNTO 0);
 	SIGNAL instruction_w	: STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-	SIGNAL MCLK_w 			: STD_LOGIC;
 	SIGNAL mclk_cnt_q		: STD_LOGIC_VECTOR(CLK_CNT_WIDTH-1 DOWNTO 0);
 	SIGNAL inst_cnt_w		: STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0);
 	--- tri_bus ---
@@ -156,17 +155,6 @@ BEGIN
 	INTA_o <= inta_w;
 	GIE_o <= m_gie_w and d_gie_w;
 	
-	-- connect the PLL component
-	G0:
-	if (MODELSIM = 0) generate
-	  MCLK: PLL
-		PORT MAP (
-			inclk0 	=> clk_i,
-			c0 		=> MCLK_w
-		);
-	else generate
-		MCLK_w <= clk_i;
-	end generate;
 	-- connect the 5 MIPS components   
 	IFE : Ifetch
 	generic map(
@@ -174,11 +162,11 @@ BEGIN
 		DATA_BUS_WIDTH		=> 	DATA_BUS_WIDTH, 
 		PC_WIDTH			=>	PC_WIDTH,
 		ITCM_ADDR_WIDTH		=>	ITCM_ADDR_WIDTH,
-		WORDS_NUM			=>	DATA_WORDS_NUM,
+		WORDS_NUM			=>	256,
 		INST_CNT_WIDTH		=>	INST_CNT_WIDTH
 	)
 	PORT MAP (	
-		clk_i 			=> MCLK_w,  
+		clk_i 			=> clk_i,  
 		rst_i 			=> rst_i, 
 		ena_i			=> not_in_intr_w,
 		add_result_i 	=> addr_res_w,
@@ -198,7 +186,7 @@ BEGIN
 		DATA_BUS_WIDTH		=>  DATA_BUS_WIDTH
 	)
 	PORT MAP (	
-			clk_i 				=> MCLK_w,  
+			clk_i 				=> clk_i,  
 			rst_i 				=> rst_i,
         	instruction_i 		=> instruction_w,
 			alu_result_i 		=> alu_result_w,
@@ -265,7 +253,7 @@ BEGIN
 				WORDS_NUM			=>	DATA_WORDS_NUM
 			)
 			PORT MAP (	
-				clk_i 				=> MCLK_w,  
+				clk_i 				=> clk_i,  
 				rst_i 				=> rst_i,
 				dtcm_addr_i 		=> alu_result_w((DTCM_ADDR_WIDTH+2)-1 DOWNTO 2), -- increment memory address by 4
 				dtcm_data_wr_i 		=> read_data2_w,
@@ -281,7 +269,7 @@ BEGIN
 				WORDS_NUM			=>	DATA_WORDS_NUM
 			)
 			PORT MAP (	
-				clk_i 				=> MCLK_w,  
+				clk_i 				=> clk_i,  
 				rst_i 				=> rst_i,
 				dtcm_addr_i 		=> alu_result_w(DTCM_ADDR_WIDTH-1 DOWNTO 2)&"00",
 				dtcm_data_wr_i 		=> read_data2_w,
@@ -293,11 +281,11 @@ BEGIN
 ---------------------------------------------------------------------------------------
 --									IPC - MCLK counter register
 ---------------------------------------------------------------------------------------
-process (MCLK_w , rst_i)
+process (clk_i , rst_i)
 begin
 	if rst_i = '1' then
 		mclk_cnt_q	<=	(others	=> '0');
-	elsif rising_edge(MCLK_w) then
+	elsif rising_edge(clk_i) then
 		mclk_cnt_q	<=	mclk_cnt_q + '1';
 	end if;
 end process;

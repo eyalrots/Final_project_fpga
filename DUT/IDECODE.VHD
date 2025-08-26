@@ -77,7 +77,7 @@ BEGIN
 							(others=>'0') when others;
 
 	write_reg_data_w <= zero_vec_w & pc_plus_4_i when Jal_ctrl_i = '1' else 
-						-- (0=>'1', 1=>'1', OTHERS=>'0') WHEN write_reg_mux_w=X"824" else
+						-- (0=>'1', 1=>'1', OTHERS=>'0') WHEN write_reg_mux_w=X"B71B00" else
 						-- (1=>'1', 2=>'1', others=>'0') when write_reg_mux_w=X"C35" else
 						write_reg_mux_w;
 	

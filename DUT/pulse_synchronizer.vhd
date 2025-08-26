@@ -20,9 +20,12 @@ begin
 
     slow_dff: process (FIRCLK_i, sending)
     begin
-        ready <= '0';
-        if (rising_edge(FIRCLK_i)) then
+        if (sending ='1') then
+            ready <= '0';
+        elsif (rising_edge(FIRCLK_i)) then
             ready <= FIRENA_i;
+        -- else 
+        --     ready <= '0';
         end if ;
     end process;
 

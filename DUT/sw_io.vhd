@@ -17,10 +17,8 @@ END sw_io;
 ARCHITECTURE sw_io_arc OF sw_io IS
     signal read_en  : std_logic;
     signal zero_vec_w   : std_logic_vector(DATA_BUS_WIDTH-1 downto 8) := (others=>'0');
-    signal bus_sw_w     : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
 begin
     read_en  <= CS_i and MemRead_i;
 
-    bus_sw_w <= zero_vec_w & data_i when read_en='1' else (others => 'Z');
     data_bus_io <= zero_vec_w & data_i when read_en='1' else (others => 'Z');
 end architecture;

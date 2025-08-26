@@ -27,8 +27,8 @@ architecture timer_top_arc of timer_top is
     signal mclk2_w      : std_logic;
     signal mclk4_w      : std_logic;
     signal mclk8_w      : std_logic;
-    signal div4         : std_logic;
-    signal div8         : std_logic_vector(1 downto 0);
+    -- signal div4         : std_logic;
+    -- signal div8         : std_logic_vector(1 downto 0);
     signal read_en_w    : std_logic_vector(3 downto 0) := (others=>'0');
     signal zero_vec_w   : std_logic_vector(23 downto 0) := (others=>'0');
 begin
@@ -37,7 +37,7 @@ begin
     begin
         if (rst_i='1') then
             BTCTL_w    <= (others=>'0');
-            BTCNT_w    <= (others=>'0');
+            BTCNT_w    <= (others=>'Z');
             BTCCR0_w   <= (others=>'0');
             BTCCR1_w   <= (others=>'0');
         elsif (falling_edge(clk_i)) then
@@ -52,7 +52,7 @@ begin
                     when X"828" =>
                         BTCCR1_w <= data_bus_io;
                     when others =>
-                        null;
+                        BTCNT_w <= (others=>'Z');
                 end case;
             end if;
         end if;
@@ -70,21 +70,22 @@ begin
                     (others=>'Z');
 
     div_cnt: process(clk_i,rst_i)
+        variable div4 : std_logic := '0';
+        variable div8 : std_logic_vector(1 downto 0) := "00";
     begin 
         if (rst_i='1') then
             mclk2_w <= '0';
 			mclk4_w <= '0';
 			mclk8_w <= '0';
-            div4 <= '0';
-            div8 <= "00";
-        end if;
-        if (rising_edge(clk_i)) then
+            div4 := '0';
+            div8 := "00";
+        elsif (rising_edge(clk_i)) then
             mclk2_w <= not (mclk2_w);
-            div4 <= not(div4);
+            div4 := not(div4);
 			if (div4='1') then
 				mclk4_w <= not(mclk4_w);
 			end if;
-            div8 <= std_logic_vector(ieee.numeric_std.unsigned(div8) + 1);
+            div8 := std_logic_vector(ieee.numeric_std.unsigned(div8) + 1);
 			if (div8="11") then
 				mclk8_w <= not(mclk8_w);
 			end if;

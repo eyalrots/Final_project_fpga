@@ -19,6 +19,7 @@ ENTITY mcu IS
 	);
     PORT (
         clk_i               : IN std_logic;
+        -- clk2_i              : in std_logic;
         rst_i               : IN std_logic;
         --- interrupts ---
         key1_i              : in std_logic;
@@ -35,23 +36,26 @@ ENTITY mcu IS
         led_o               : out std_logic_vector(7 downto 0);
         pc_o                : out std_logic_vector(PC_WIDTH-1 downto 0);
         instruction_o       : out std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-        data_bus_o          : out std_logic_vector (DATA_BUS_WIDTH-1 downto 0);
-        address_bus_o       : out std_logic_vector (DTCM_ADDR_WIDTH-1 downto 0);
-        mem_wr_o            : out std_logic;
-        mem_rd_o            : out std_logic;
-		alu_result_o 		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-		read_data1_o 		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-		read_data2_o 		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-		write_data_o		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-		Branch_ctrl_o		: OUT STD_LOGIC;
-		Zero_o				: OUT STD_LOGIC; 
-		RegWrite_ctrl_o		: OUT STD_LOGIC;
-		inst_cnt_o 			: OUT STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0);
+        data_bus_o          : inout std_logic_vector (DATA_BUS_WIDTH-1 downto 0);
+        -- address_bus_o       : out std_logic_vector (DTCM_ADDR_WIDTH-1 downto 0);
+        -- mem_wr_o            : out std_logic;
+        -- mem_rd_o            : out std_logic;
+		-- alu_result_o 		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+		-- read_data1_o 		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+		-- read_data2_o 		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+		-- write_data_o		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+		-- Branch_ctrl_o		: OUT STD_LOGIC;
+		-- Zero_o				: OUT STD_LOGIC; 
+		-- RegWrite_ctrl_o		: OUT STD_LOGIC;
+		-- inst_cnt_o 			: OUT STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0);
         pwm_o               : out std_logic
     );
 END mcu;
 --------------------------------------------------------------
 ARCHITECTURE mcu_arc OF mcu is
+    --- clocks ---
+    signal MCLK_w   : std_logic:= '0';
+    signal SMCLK_w   : std_logic;
     --- tri bus ---
     signal data_bus_w   : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
     signal addr_bus_w   : std_logic_vector(11 downto 0);
@@ -71,6 +75,7 @@ ARCHITECTURE mcu_arc OF mcu is
     signal BTIFG_w      : std_logic;
     --- FIR filter ---
     signal fir_ifg_w   : std_logic;
+    signal fifo_ifg_w  : std_logic;
     signal fifo_empty_w: std_logic;
     --- interrupts ---
     signal gie_w       : std_logic;
@@ -79,12 +84,33 @@ ARCHITECTURE mcu_arc OF mcu is
     signal intr_cs_w   : std_logic;
     --- random ---
     signal zero_vec_w   : std_logic_vector(23 downto 0);
+    signal not_rst_w    : std_logic := '1';
+    signal not_key1_w   : std_logic;
+    signal not_key2_w   : std_logic;
+    signal not_key3_w   : std_logic;
 begin
-    --- out signals ---
-    data_bus_o      <= data_bus_w;
-    address_bus_o   <= addr_bus_w;
-    mem_wr_o        <= mem_wr_en_w;
-    mem_rd_o        <= mem_rd_en_w;
+    data_bus_o <= data_bus_w;
+    --- not signals ---
+    not_rst_w   <= '1' when rst_i='0' else '0';
+    not_key1_w  <= '1' when key1_i='0' else '0';
+    not_key2_w  <= '1' when key2_i='0' else '0';
+    not_key3_w  <= '1' when key3_i='0' else '0';
+    --- PLLs ---
+    MCLK: PLL 
+    generic map (DIVIDE_BY=>2)
+    PORT MAP (
+        -- areset   => not_rst_w,
+        inclk0 	 => clk_i,
+        c0 		 => MCLK_w
+    );
+
+    -- SMCLK: PLL 
+    -- generic map (DIVIDE_BY=>2000) 
+    -- PORT MAP (
+    --     -- areset   => not_rst_w,
+    --     inclk0 	 => clk_i,
+    --     c0 		 => SMCLK_w
+    -- );
 
 
     --- mips core ---
@@ -102,22 +128,22 @@ begin
 		INST_CNT_WIDTH				=> INST_CNT_WIDTH
 	)
     port map (
-        rst_i           => rst_i,
-        clk_i           => clk_i,
+        rst_i           => not_rst_w,
+        clk_i           => MCLK_w,
         data_bus_io     => data_bus_w,
         addr_bus_o      => addr_bus_w,
         MemWrite_ctrl_o => mem_wr_en_w,
         MemRead_ctrl_o  => mem_rd_en_w,
         pc_o            => pc_o,
         instruction_o   => instruction_o,
-        Branch_ctrl_o   => Branch_ctrl_o,
-        Zero_o          => Zero_o,
-        RegWrite_ctrl_o => RegWrite_ctrl_o,
-        alu_result_o    => alu_result_o,
-        read_data1_o    => read_data1_o,
-        read_data2_o    => read_data2_o,
-        inst_cnt_o      => inst_cnt_o,
-        write_data_o    => write_data_o,
+        -- Branch_ctrl_o   => Branch_ctrl_o,
+        -- Zero_o          => Zero_o,
+        -- RegWrite_ctrl_o => RegWrite_ctrl_o,
+        -- alu_result_o    => alu_result_o,
+        -- read_data1_o    => read_data1_o,
+        -- read_data2_o    => read_data2_o,
+        -- inst_cnt_o      => inst_cnt_o,
+        -- write_data_o    => write_data_o,
         INTR_i          => intr_w,
         INTA_o          => inta_w,
         GIE_o           => gie_w
@@ -139,8 +165,8 @@ begin
 
     --- LEDs ---
     leds: led_io port map (
-        clk_i           => clk_i,
-        rst_i           => rst_i,
+        clk_i           => MCLK_w,
+        rst_i           => not_rst_w,
         MemRead_i       => mem_rd_en_w,
         MemWrite_i      => mem_wr_en_w,
         CS_i            => cs_vec_w(0),
@@ -151,8 +177,8 @@ begin
     --- hex displays ---
     A0_not_w <= not(addr_bus_w(0));
     hex0: hex_seg port map (
-        clk_i           => clk_i,
-        rst_i           => rst_i,
+        clk_i           => MCLK_w,
+        rst_i           => not_rst_w,
         MemRead_i       => mem_rd_en_w,
         MemWrite_i      => mem_wr_en_w,
         A0_i            => A0_not_w,
@@ -165,11 +191,11 @@ begin
         seg             => hex0_o
     );
     hex1: hex_seg port map (
-        clk_i           => clk_i,
-        rst_i           => rst_i,
+        clk_i           => MCLK_w,
+        rst_i           => not_rst_w,
         MemRead_i       => mem_rd_en_w,
         MemWrite_i      => mem_wr_en_w,
-        A0_i            => A0_not_w,
+        A0_i            => addr_bus_w(0),
         CS_i            => cs_vec_w(1),
         data_bus_io     => data_bus_w,
         data_o          => hex1_data_w
@@ -179,8 +205,8 @@ begin
         seg             => hex1_o
     );
     hex2: hex_seg port map (
-        clk_i           => clk_i,
-        rst_i           => rst_i,
+        clk_i           => MCLK_w,
+        rst_i           => not_rst_w,
         MemRead_i       => mem_rd_en_w,
         MemWrite_i      => mem_wr_en_w,
         A0_i            => A0_not_w,
@@ -193,11 +219,11 @@ begin
         seg             => hex2_o
     );
     hex3: hex_seg port map (
-        clk_i           => clk_i,
-        rst_i           => rst_i,
+        clk_i           => MCLK_w,
+        rst_i           => not_rst_w,
         MemRead_i       => mem_rd_en_w,
         MemWrite_i      => mem_wr_en_w,
-        A0_i            => A0_not_w,
+        A0_i            => addr_bus_w(0),
         CS_i            => cs_vec_w(2),
         data_bus_io     => data_bus_w,
         data_o          => hex3_data_w
@@ -207,8 +233,8 @@ begin
         seg             => hex3_o
     );
     hex4: hex_seg port map (
-        clk_i           => clk_i,
-        rst_i           => rst_i,
+        clk_i           => MCLK_w,
+        rst_i           => not_rst_w,
         MemRead_i       => mem_rd_en_w,
         MemWrite_i      => mem_wr_en_w,
         A0_i            => A0_not_w,
@@ -221,11 +247,11 @@ begin
         seg             => hex4_o
     );
     hex5: hex_seg port map (
-        clk_i           => clk_i,
-        rst_i           => rst_i,
+        clk_i           => MCLK_w,
+        rst_i           => not_rst_w,
         MemRead_i       => mem_rd_en_w,
         MemWrite_i      => mem_wr_en_w,
-        A0_i            => A0_not_w,
+        A0_i            => addr_bus_w(0),
         CS_i            => cs_vec_w(3),
         data_bus_io     => data_bus_w,
         data_o          => hex5_data_w
@@ -237,8 +263,8 @@ begin
 
     --- basic timer ---
     timer: timer_top port map (
-        clk_i       => clk_i,
-        rst_i       => rst_i,
+        clk_i       => MCLK_w,
+        rst_i       => not_rst_w,
         mem_rd_i    => mem_rd_en_w,
         mem_wr_i    => mem_wr_en_w,
         addr_bus_i  => addr_bus_w,
@@ -249,28 +275,31 @@ begin
 
     --- FIR filter ---
     fir_filter: fir_top port map (
-        clk_i           => clk_i,
-        rst_i           => rst_i,
+        clk_i           => MCLK_w,
+        rst_i           => not_rst_w,
+        clk2_i          => MCLK_w,
         mem_rd_i        => mem_rd_en_w,
         mem_wr_i        => mem_wr_en_w,
         addr_bus_i      => addr_bus_w,
         data_bus_io     => data_bus_w,
         fifo_empty_o    => fifo_empty_w,
-        fir_ifg_o       => fir_ifg_w
+        fir_ifg_o       => fir_ifg_w,
+        fifo_ifg_o      => fifo_ifg_w
     );
 
     -- interrupts ---
     intr_cs_w <= '1' when addr_bus_w=X"840" or addr_bus_w=X"841" else '0';
     intr: int_ctrl port map (
-        clk_i           => clk_i,
-        rst_i           => rst_i,
+        clk_i           => MCLK_w,
+        rst_i           => not_rst_w,
         RX_INT_i        => '0',
         TX_INT_i        => '0',
         BT_INT_i        => BTIFG_w,
-        KEY1_INT_i      => key1_i,
-        KEY2_INT_i      => key2_i,
-        KEY3_INT_i      => key3_i,
+        KEY1_INT_i      => not_key1_w,
+        KEY2_INT_i      => not_key2_w,
+        KEY3_INT_i      => not_key3_w,
         FIR_INT_i       => fir_ifg_w,
+        FIFO_INT_i      => fifo_ifg_w,
         CS_i            => intr_cs_w,
         INTA_i          => inta_w,
         GIE             => gie_w,

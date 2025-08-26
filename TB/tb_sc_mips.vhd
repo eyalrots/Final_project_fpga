@@ -30,12 +30,13 @@ ARCHITECTURE struct OF MIPS_tb IS
 	-- Internal signal declarations
 	SIGNAL rst_tb_i           	: STD_LOGIC;
 	SIGNAL clk_tb_i           	: STD_LOGIC;
+	SIGNAL clk2_tb_i           	: STD_LOGIC;
 	--- interrupts ---
 	signal key1_tb_i	: std_logic;
 	signal key2_tb_i	: std_logic;
 	signal key3_tb_i	: std_logic;
 	--- GPIO ---
-	SIGNAL sw_tb_i    	: std_logic_vector(7 downto 0);
+	SIGNAL sw_tb_i    	: std_logic_vector(7 downto 0) := (others => '0');
 	SIGNAL hex0_tb_o 	 : std_logic_vector(6 downto 0);
 	SIGNAL hex1_tb_o  	: std_logic_vector(6 downto 0);
 	SIGNAL hex2_tb_o  	: std_logic_vector(6 downto 0);
@@ -61,7 +62,6 @@ ARCHITECTURE struct OF MIPS_tb IS
 
    
 BEGIN
-	sw_tb_i <= (1=>'1', others=>'0');
 	CORE : mcu
 	generic map(
 		WORD_GRANULARITY 			=> WORD_GRANULARITY,
@@ -94,18 +94,18 @@ BEGIN
 		led_o				=> led_tb_o,
 		pc_o 				=> pc_tb_o,
 		instruction_o		=> instruction_o,
-		data_bus_o			=> data_bus_o,
-		address_bus_o		=>address_bus_o,
-		mem_wr_o			=> mem_wr_o,
-		mem_rd_o			=> mem_rd_o,
-		Branch_ctrl_o  		=> Branch_ctrl_o,
-        Zero_o          	=> Zero_o,
-        RegWrite_ctrl_o 	=> RegWrite_ctrl_o,
-        alu_result_o    	=> alu_result_o,
-        read_data1_o    	=> read_data1_o,
-        read_data2_o    	=> read_data2_o,
-        inst_cnt_o  		=> inst_cnt_o,
-        write_data_o		=> write_data_o,
+		-- data_bus_o			=> data_bus_o,
+		-- address_bus_o		=>address_bus_o,
+		-- mem_wr_o			=> mem_wr_o,
+		-- mem_rd_o			=> mem_rd_o,
+		-- Branch_ctrl_o  		=> Branch_ctrl_o,
+        -- Zero_o          	=> Zero_o,
+        -- RegWrite_ctrl_o 	=> RegWrite_ctrl_o,
+        -- alu_result_o    	=> alu_result_o,
+        -- read_data1_o    	=> read_data1_o,
+        -- read_data2_o    	=> read_data2_o,
+        -- inst_cnt_o  		=> inst_cnt_o,
+        -- write_data_o		=> write_data_o,
 		pwm_o				=> pwm_tb_o
 	);	
 --------------------------------------------------------------------	
@@ -113,16 +113,30 @@ BEGIN
 	process
         begin
 		  clk_tb_i <= '1';
-		  wait for 50 ns;
+		  wait for 10 ns;
 		  clk_tb_i <= not clk_tb_i;
-		  wait for 50 ns;
+		  wait for 10 ns;
+    end process;
+
+	gen_clk2 : 
+	process
+        begin
+		  clk2_tb_i <= '1';
+		  wait for 10030 ns;
+		  clk2_tb_i <= not clk2_tb_i;
+		  wait for 10030 ns;
     end process;
 	
 	gen_rst : 
 	process
         begin
-		  rst_tb_i <='1','0' after 80 ns;
-		  wait;
+		rst_tb_i <= '1';
+		wait for 600 ns;
+		rst_tb_i <= '0';
+		wait for 200 ns;
+		rst_tb_i <= '1';
+		
+	  wait;
     end process;
 
 	KEYS :
@@ -131,10 +145,12 @@ BEGIN
 	-- key1_tb_i <= '0';
 	-- key2_tb_i <= '0';
 	-- key3_tb_i <= '0';
-	-- wait for 6100 ns;
+	-- wait for 3400 ns;
+	sw_tb_i(1) <= '1';
 	-- key1_tb_i <= '1';
 	-- key2_tb_i <= '1';
 	-- wait for 100 ns;
+	-- sw_tb_i(0) <= '0';
 	-- key1_tb_i <= '0';
 	-- key2_tb_i <= '0';
 
@@ -149,7 +165,5 @@ BEGIN
 	-- key3_tb_i <= '0';
 	wait;
   end process;
-
-  sw_tb_i<= (1=>'1', others=>'0');
 --------------------------------------------------------------------		
 END struct;

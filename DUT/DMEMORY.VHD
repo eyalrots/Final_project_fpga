@@ -15,7 +15,7 @@ ENTITY dmemory IS
 	generic(
 		DATA_BUS_WIDTH : integer := 32;
 		DTCM_ADDR_WIDTH : integer := 12;
-		WORDS_NUM : integer := 256
+		WORDS_NUM : integer := 1024
 	);
 	PORT(	clk_i,rst_i			: IN 	STD_LOGIC;
 			dtcm_addr_i 		: IN 	STD_LOGIC_VECTOR(DTCM_ADDR_WIDTH-1 DOWNTO 0);
@@ -35,18 +35,18 @@ BEGIN
 	GENERIC MAP  (
 		operation_mode => "SINGLE_PORT",
 		width_a => DATA_BUS_WIDTH,
-		widthad_a => DTCM_ADDR_WIDTH-1,
+		widthad_a => DTCM_ADDR_WIDTH-2,
 		numwords_a => WORDS_NUM,
 		lpm_hint => "ENABLE_RUNTIME_MOD = YES,INSTANCE_NAME = DTCM",
 		lpm_type => "altsyncram",
 		outdata_reg_a => "UNREGISTERED",
-		init_file => "C:\Users\Eyal\Architecture-Labs\Final_Project\Library\int_test4\bin\DTCM.hex",
+		init_file => "C:\Users\Eyal\Architecture-Labs\Final_Project\Library\GPIO_test1\bin\DTCM.hex",
 		intended_device_family => "Cyclone"
 	)
 	PORT MAP (
 		wren_a => wren_w,
 		clock0 => wrclk_w,
-		address_a => dtcm_addr_i(DTCM_ADDR_WIDTH-2 downto 0),
+		address_a => dtcm_addr_i(DTCM_ADDR_WIDTH-3 downto 0),
 		data_a => dtcm_data_wr_i,
 		q_a => dtcm_data_rd_o	
 	);

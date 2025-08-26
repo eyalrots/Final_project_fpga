@@ -73,7 +73,7 @@ package aux_package is
 		generic(
 		DATA_BUS_WIDTH : integer := 32;
 		DTCM_ADDR_WIDTH : integer := 12;
-		WORDS_NUM : integer := 256
+		WORDS_NUM : integer := 1024
 	);
 	PORT(	clk_i,rst_i			: IN 	STD_LOGIC;
 			dtcm_addr_i 		: IN 	STD_LOGIC_VECTOR(DTCM_ADDR_WIDTH-1 DOWNTO 0);
@@ -155,7 +155,9 @@ package aux_package is
 	);
 	end component;
 ---------------------------------------------------------
-	COMPONENT PLL port(
+	COMPONENT PLL 
+	generic (DIVIDE_BY : natural := 2);
+	port(
 	    areset		: IN STD_LOGIC  := '0';
 		inclk0		: IN STD_LOGIC  := '0';
 		c0     		: OUT STD_LOGIC ;
@@ -261,17 +263,17 @@ package aux_package is
         	pc_o    			: out std_logic_vector(PC_WIDTH-1 downto 0);
         	instruction_o 		: out std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
         	data_bus_o    		: out std_logic_vector (DATA_BUS_WIDTH-1 downto 0);
-        	address_bus_o 		: out std_logic_vector (12-1 downto 0);
-        	mem_wr_o      		: out std_logic;
-        	mem_rd_o      		: out std_logic;
-			alu_result_o 		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-			read_data1_o 		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-			read_data2_o 		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-			write_data_o		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-			Branch_ctrl_o		: OUT STD_LOGIC;
-			Zero_o				: OUT STD_LOGIC; 
-			RegWrite_ctrl_o		: OUT STD_LOGIC;
-			inst_cnt_o 			: OUT STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0);
+        	-- address_bus_o 		: out std_logic_vector (12-1 downto 0);
+        	-- mem_wr_o      		: out std_logic;
+        	-- mem_rd_o      		: out std_logic;
+			-- alu_result_o 		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+			-- read_data1_o 		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+			-- read_data2_o 		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+			-- write_data_o		: OUT STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
+			-- Branch_ctrl_o		: OUT STD_LOGIC;
+			-- Zero_o				: OUT STD_LOGIC; 
+			-- RegWrite_ctrl_o		: OUT STD_LOGIC;
+			-- inst_cnt_o 			: OUT STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0);
 			pwm_o				: out std_logic
 		);
 	END component;
@@ -338,6 +340,7 @@ component FIFO
         FIFOREN_i     : in    std_logic;
         FIFOFULL_o    : out   std_logic;
         FIFOEMPTY_o   : out   std_logic;
+        new_out_o     : out   std_logic;
         DATAOUT_o     : out   std_logic_vector(W-1 downto 0)
     );
 END component;
@@ -361,8 +364,9 @@ component filter
 		FIRCLK_i    : in std_logic;
 		FIRRST_i    : in std_logic;
 		FIRENA_i    : in std_logic;
+		new_out_i   : in std_logic;
 		ifg_o    	: out std_logic;
-		data_o      : out std_logic_vector(DATA_BUS_WIDTH-12 downto 0)
+		data_o      : out std_logic_vector(DATA_BUS_WIDTH-1 downto 0)
     );
 END component;
 --------------------------------------------------------------
@@ -391,7 +395,8 @@ PORT (
     FIROUT_o    : out std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
     FIFOFULL_o  : out std_logic;
     FIFOEMPTY_o : out std_logic;
-    FIRIFG_o    : out std_logic
+    fifo_ifg_o  : out std_logic;
+    fir_ifg_o    : out std_logic
 );
 END component;
 --------------------------------------------------------------
@@ -400,12 +405,14 @@ component fir_top
         DATA_BUS_WIDTH : INTEGER := 32);
     PORT (
         clk_i, rst_i    : in    std_logic;
+        clk2_i          : in    std_logic;
         mem_rd_i        : in    std_logic;
         mem_wr_i        : in    std_logic;
         addr_bus_i      : in    std_logic_vector(11 downto 0);
         data_bus_io     : inout std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
         fifo_empty_o    : out   std_logic;
-        fir_ifg_o       : out   std_logic
+        fir_ifg_o       : out   std_logic;
+        fifo_ifg_o      : out   std_logic
     );
 END component;
 --------------------------------------------------------------
@@ -422,6 +429,7 @@ component int_ctrl
         KEY2_INT_i      : in std_logic;
         KEY3_INT_i      : in std_logic;
         FIR_INT_i       : in std_logic;
+        FIFO_INT_i      : in std_logic;
         CS_i            : in std_logic;
         INTA_i          : in std_logic;
         GIE             : in std_logic;
