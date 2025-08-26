@@ -52,7 +52,8 @@ begin
                     when X"828" =>
                         BTCCR1_w <= data_bus_io;
                     when others =>
-                        BTCNT_w <= (others=>'Z');
+                        -- BTCNT_w <= (others=>'Z');
+                        null;
                 end case;
             end if;
         end if;

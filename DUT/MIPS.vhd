@@ -79,15 +79,18 @@ ARCHITECTURE structure OF MIPS IS
 	--- tri_bus ---
 	signal mem_read_en_w	: std_logic;
 	--- interrupts ---
+	signal next_addr_w		: std_logic_vector(PC_WIDTH-1 downto 0);
 	signal f_inst_w			: std_logic_vector (DATA_BUS_WIDTH-1 downto 0);
 	signal int_type_addr_w	: std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
 	signal mod_jr_w			: std_logic_vector(DATA_BUS_WIDTH-1 downto 0) := X"03600008";
 	signal mod_lw_start_w	: std_logic_vector(15 downto 0) := X"8C1B";
+	signal nop_inst_w		: std_logic_vector(DATA_BUS_WIDTH-1 downto 0) := X"00000020";
 	signal inta_w			: std_logic := '1';
 	signal d_gie_w			: std_logic;
 	signal m_gie_w			: std_logic := '1';
 	signal cur_inst_w		: std_logic_vector(1 downto 0) := "00";
 	signal not_in_intr_w	: boolean := true;
+	signal fetch_ena_w  	: boolean := true;
 
 BEGIN
 	-- copy important signals to output pins for easy 
@@ -116,13 +119,21 @@ BEGIN
 	--- interrupts ---
 	int_ack: process(INTR_i, clk_i)
 	begin
-		if (rising_edge(clk_i)) then
+		if (rst_i='1') then
+			inta_w <= '1';
+			m_gie_w <= '1';
+			not_in_intr_w <= true;
+			fetch_ena_w   <= true;
+		elsif (rising_edge(clk_i)) then
 			if (INTR_i='1') then
 				inta_w <= '0';
 				m_gie_w <= '0';
 				not_in_intr_w <= false;
+				fetch_ena_w   <= false;
 			elsif (inta_w='0') then
 				inta_w <= '1';
+			elsif (cur_inst_w = "01" ) then
+				fetch_ena_w <= true;
 			elsif (cur_inst_w = "10") then
 				not_in_intr_w <= true;
 			elsif (instruction_w=mod_jr_w and not_in_intr_w) then
@@ -150,6 +161,7 @@ BEGIN
 
 	int_type_addr_w <= data_bus_io when inta_w='0' else int_type_addr_w;
 	instruction_w <= f_inst_w when (not_in_intr_w) else 
+						nop_inst_w when cur_inst_w = "00" else
 						mod_lw_start_w & X"00" & int_type_addr_w(7 downto 0) when cur_inst_w = "01" else
 						mod_jr_w when cur_inst_w = "10";
 	INTA_o <= inta_w;
@@ -168,7 +180,7 @@ BEGIN
 	PORT MAP (	
 		clk_i 			=> clk_i,  
 		rst_i 			=> rst_i, 
-		ena_i			=> not_in_intr_w,
+		ena_i			=> fetch_ena_w,
 		add_result_i 	=> addr_res_w,
 		Branch_ctrl_i 	=> branch_w,
 		BranchN_ctrl_i	=> branchN_w,
@@ -178,7 +190,8 @@ BEGIN
 		pc_o 			=> pc_o,
 		instruction_o 	=> f_inst_w,
     	pc_plus4_o	 	=> pc_plus4_w,
-		inst_cnt_o		=> inst_cnt_w
+		inst_cnt_o		=> inst_cnt_w,
+		next_addr_o		=> next_addr_w
 	);
 
 	ID : Idecode
@@ -195,6 +208,8 @@ BEGIN
 			RegDst_ctrl_i 		=> reg_dst_w,
 			Jal_ctrl_i			=> Jal_ctrl_w,
 			pc_plus_4_i			=> pc_plus4_w,
+			next_addr_i			=> next_addr_w,
+			in_intr_i			=> not not_in_intr_w,
 			read_data1_o 		=> read_data1_w,
         	read_data2_o 		=> read_data2_w,
 			sign_extend_o 		=> sign_extend_w,

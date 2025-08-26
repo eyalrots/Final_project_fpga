@@ -119,7 +119,10 @@ package aux_package is
 			MemtoReg_ctrl_i : IN 	STD_LOGIC_VECTOR(1 downto 0);
 			RegDst_ctrl_i 	: IN 	std_logic_vector(1 downto 0);
 			Jal_ctrl_i		: in	std_logic;
-			pc_plus_4_i		: in	std_logic_vector(PC_WIDTH-1 downto 0);
+			pc_plus_4_i		: in 	std_logic_vector(PC_WIDTH-1 downto 0);
+			--- interrupts ---
+			next_addr_i		: in 	std_logic_vector(PC_WIDTH-1 downto 0);
+			in_intr_i		: in    boolean;
 			read_data1_o	: OUT 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			read_data2_o	: OUT 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			sign_extend_o 	: OUT 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
@@ -151,7 +154,9 @@ package aux_package is
 		pc_o 			: OUT	STD_LOGIC_VECTOR(PC_WIDTH-1 DOWNTO 0);
 		pc_plus4_o 		: OUT	STD_LOGIC_VECTOR(PC_WIDTH-1 DOWNTO 0);
 		instruction_o 	: OUT	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-		inst_cnt_o 		: OUT	STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0)	
+		inst_cnt_o 		: OUT	STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0);
+		--- interrupts ---
+		next_addr_o		: out	std_logic_vector(PC_WIDTH-1 downto 0)
 	);
 	end component;
 ---------------------------------------------------------
@@ -262,7 +267,8 @@ package aux_package is
 			led_o   			: out std_logic_vector(7 downto 0);
         	pc_o    			: out std_logic_vector(PC_WIDTH-1 downto 0);
         	instruction_o 		: out std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-        	data_bus_o    		: out std_logic_vector (DATA_BUS_WIDTH-1 downto 0);
+        	data_bus_o    		: inout std_logic_vector (DATA_BUS_WIDTH-1 downto 0);
+        	ifg_o               : out std_logic_vector(7 downto 0);
         	-- address_bus_o 		: out std_logic_vector (12-1 downto 0);
         	-- mem_wr_o      		: out std_logic;
         	-- mem_rd_o      		: out std_logic;
@@ -438,6 +444,7 @@ component int_ctrl
         A0_i            : in std_logic;
         fir_empty_i     : in std_logic;
         -- addr_bus_i		: in std_logic_vector(DTCM_ADDR_WIDTH-1 downto 0);
+        ifg_o           : out std_logic_vector(7 downto 0);
         INTR_o          : out std_logic;  
         data_bus_io     : inout std_logic_vector(DATA_BUS_WIDTH-1 downto 0)
     );

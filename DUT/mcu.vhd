@@ -36,6 +36,7 @@ ENTITY mcu IS
         led_o               : out std_logic_vector(7 downto 0);
         pc_o                : out std_logic_vector(PC_WIDTH-1 downto 0);
         instruction_o       : out std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
+        ifg_o               : out std_logic_vector(7 downto 0);
         data_bus_o          : inout std_logic_vector (DATA_BUS_WIDTH-1 downto 0);
         -- address_bus_o       : out std_logic_vector (DTCM_ADDR_WIDTH-1 downto 0);
         -- mem_wr_o            : out std_logic;
@@ -104,13 +105,13 @@ begin
         c0 		 => MCLK_w
     );
 
-    -- SMCLK: PLL 
-    -- generic map (DIVIDE_BY=>2000) 
-    -- PORT MAP (
-    --     -- areset   => not_rst_w,
-    --     inclk0 	 => clk_i,
-    --     c0 		 => SMCLK_w
-    -- );
+    SMCLK: PLL 
+    generic map (DIVIDE_BY=>2000) 
+    PORT MAP (
+        -- areset   => not_rst_w,
+        inclk0 	 => clk_i,
+        c0 		 => SMCLK_w
+    );
 
 
     --- mips core ---
@@ -277,7 +278,7 @@ begin
     fir_filter: fir_top port map (
         clk_i           => MCLK_w,
         rst_i           => not_rst_w,
-        clk2_i          => MCLK_w,
+        clk2_i          => SMCLK_w,
         mem_rd_i        => mem_rd_en_w,
         mem_wr_i        => mem_wr_en_w,
         addr_bus_i      => addr_bus_w,
@@ -307,6 +308,7 @@ begin
         MemWrite_ctrl_i => mem_wr_en_w,
         A0_i            => addr_bus_w(0),
         fir_empty_i     => fir_ifg_w,
+        ifg_o           => ifg_o,
         INTR_o          => intr_w,
         data_bus_io     => data_bus_w
     );

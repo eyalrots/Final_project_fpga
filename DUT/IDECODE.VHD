@@ -22,7 +22,11 @@ ENTITY Idecode IS
 			MemtoReg_ctrl_i : IN 	STD_LOGIC_VECTOR(1 downto 0);
 			RegDst_ctrl_i 	: IN 	std_logic_vector(1 downto 0);
 			Jal_ctrl_i		: in	std_logic;
-			pc_plus_4_i		: in	std_logic_vector(PC_WIDTH-1 downto 0);
+			pc_plus_4_i		: in 	std_logic_vector(PC_WIDTH-1 downto 0);
+			--- interrupts ---
+			next_addr_i		: in 	std_logic_vector(PC_WIDTH-1 downto 0);
+			in_intr_i		: in    boolean;
+			--- out signal ---
 			read_data1_o	: OUT 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			read_data2_o	: OUT 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			sign_extend_o 	: OUT 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
@@ -76,8 +80,9 @@ BEGIN
 							lui_value_w	when "10",
 							(others=>'0') when others;
 
-	write_reg_data_w <= zero_vec_w & pc_plus_4_i when Jal_ctrl_i = '1' else 
-						-- (0=>'1', 1=>'1', OTHERS=>'0') WHEN write_reg_mux_w=X"B71B00" else
+	write_reg_data_w <= zero_vec_w & next_addr_i when (Jal_ctrl_i = '1' and in_intr_i) else
+						zero_vec_w & pc_plus_4_i when Jal_ctrl_i = '1' else
+						-- (5=>'1', OTHERS=>'0') WHEN write_reg_mux_w=X"FFFFFFFF" else
 						-- (1=>'1', 2=>'1', others=>'0') when write_reg_mux_w=X"C35" else
 						write_reg_mux_w;
 	

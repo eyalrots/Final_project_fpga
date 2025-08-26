@@ -59,6 +59,7 @@ ARCHITECTURE struct OF MIPS_tb IS
 	signal RegWrite_ctrl_o		: 	STD_LOGIC;
 	signal inst_cnt_o 			:	STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0);
 	signal pwm_tb_o				: std_logic;
+	signal ifg_tb_o				: std_logic_vector(7 downto 0);
 
    
 BEGIN
@@ -94,7 +95,8 @@ BEGIN
 		led_o				=> led_tb_o,
 		pc_o 				=> pc_tb_o,
 		instruction_o		=> instruction_o,
-		-- data_bus_o			=> data_bus_o,
+		ifg_o				=> ifg_tb_o,
+		data_bus_o			=> data_bus_o,
 		-- address_bus_o		=>address_bus_o,
 		-- mem_wr_o			=> mem_wr_o,
 		-- mem_rd_o			=> mem_rd_o,
@@ -122,19 +124,19 @@ BEGIN
 	process
         begin
 		  clk2_tb_i <= '1';
-		  wait for 10030 ns;
+		  wait for 50 ns;
 		  clk2_tb_i <= not clk2_tb_i;
-		  wait for 10030 ns;
+		  wait for 50 ns;
     end process;
 	
 	gen_rst : 
 	process
         begin
-		rst_tb_i <= '1';
-		wait for 600 ns;
 		rst_tb_i <= '0';
-		wait for 200 ns;
+		wait for 100 ns;
 		rst_tb_i <= '1';
+		-- wait for 100 ns;
+		-- rst_tb_i <= '1';
 		
 	  wait;
     end process;
@@ -142,11 +144,30 @@ BEGIN
 	KEYS :
 	process
   begin
-	-- key1_tb_i <= '0';
-	-- key2_tb_i <= '0';
-	-- key3_tb_i <= '0';
-	-- wait for 3400 ns;
 	sw_tb_i(1) <= '1';
+	-- wait for 500 ns;
+	-- key1_tb_i <= '1';
+	-- key2_tb_i <= '1';
+	-- key3_tb_i <= '0';
+	-- wait for 400 ns;
+	-- sw_tb_i(0) <= '1';
+	-- key1_tb_i <= '0';
+	-- key2_tb_i <= '1';
+	-- key3_tb_i <= '1';
+	-- wait for 100 ns;
+	-- sw_tb_i(2) <= '1';
+	-- key1_tb_i <= '1';
+	-- key2_tb_i <= '1';
+	-- key3_tb_i <= '1';
+	-- sw_tb_i(3)  <= '1';
+	-- wait for 2000 ns;
+	-- key1_tb_i <= '1';
+	-- key2_tb_i <= '0';
+	-- key3_tb_i <= '1';
+	-- wait for 100 ns;
+	-- key1_tb_i <= '1';
+	-- key2_tb_i <= '1';
+	-- key3_tb_i <= '1';
 	-- key1_tb_i <= '1';
 	-- key2_tb_i <= '1';
 	-- wait for 100 ns;

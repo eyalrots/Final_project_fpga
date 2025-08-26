@@ -25,6 +25,7 @@ ENTITY int_ctrl IS
         A0_i            : in std_logic;
         fir_empty_i     : in std_logic;
         -- addr_bus_i		: in std_logic_vector(DTCM_ADDR_WIDTH-1 downto 0);
+        ifg_o           : out std_logic_vector(7 downto 0);
         INTR_o          : out std_logic;  
         data_bus_io     : inout std_logic_vector(DATA_BUS_WIDTH-1 downto 0)
     );
@@ -54,8 +55,11 @@ TYPE type_register IS ARRAY (0 TO 9) OF STD_LOGIC_VECTOR(7 DOWNTO 0);
     signal fir_int_en_w        : std_logic := '0';
     signal fifo_int_en_w        : std_logic := '0';
     signal key1_irq_w         : std_logic := '0';
+    signal key1_clr_w           : std_logic := '0';
     signal key2_irq_w         : std_logic := '0';
+    signal key2_clr_w           : std_logic := '0';
     signal key3_irq_w         : std_logic := '0';
+    signal key3_clr_w           : std_logic := '0';
     signal clk_cnt_w        : integer := 0;
 begin
 
@@ -104,6 +108,33 @@ begin
         end if;
     end process;
 
+    key1_ifg: process (KEY1_INT_i, key1_clr_w)
+    begin
+        if (key1_clr_w='1') then
+            key1_irq_w <= '0';
+        elsif (rising_edge(KEY1_INT_i)) then
+            key1_irq_w <= '1';
+        end if;
+    end process;
+
+    key2_ifg: process (KEY2_INT_i, key2_clr_w)
+    begin
+        if (key2_clr_w='1') then
+            key2_irq_w <= '0';
+        elsif (rising_edge(KEY2_INT_i)) then
+            key2_irq_w <= '1';
+        end if;
+    end process;
+
+    key3_ifg: process (KEY3_INT_i, key3_clr_w)
+    begin
+        if (key3_clr_w='1') then
+            key3_irq_w <= '0';
+        elsif (rising_edge(KEY3_INT_i)) then
+            key3_irq_w <= '1';
+        end if;
+    end process;
+
     firo_irq_w <= '1' when (fifo_irq_w='1' or fir_irq_w='1') else '0';
     fir_int_en_w <= IE_r(6) and fir_irq_w;
     fifo_int_en_w <= IE_r(6) and fifo_irq_w;
@@ -116,9 +147,9 @@ begin
             IE_r    <= (others=>'0');
         elsif (falling_edge(clk_i)) then
             --- set flag according to interrupt ---
-            if KEY1_INT_i = '1' then key1_irq_w <= '1'; end if;
-            if KEY2_INT_i = '1' then key2_irq_w <= '1'; end if;
-            if KEY3_INT_i = '1' then key3_irq_w <= '1'; end if;
+            -- if KEY1_INT_i = '1' then key1_irq_w <= '1'; end if;
+            -- if KEY2_INT_i = '1' then key2_irq_w <= '1'; end if;
+            -- if KEY3_INT_i = '1' then key3_irq_w <= '1'; end if;
             --- clear clear flags ---
             if (rx_clr_w='1') then
                 rx_clr_w <= '0';
@@ -134,6 +165,15 @@ begin
             end if;
             if (fifo_clr_w='1') then
                 fifo_clr_w <= '0';
+            end if;
+            if (key1_clr_w='1') then
+                key1_clr_w <= '0';
+            end if;
+            if (key2_clr_w='1') then
+                key2_clr_w <= '0';
+            end if;
+            if (key3_clr_w='1') then
+                key3_clr_w <= '0';
             end if;
             --- set handled falg to 0 ---
             if (INTA_i = '0') then
@@ -168,9 +208,9 @@ begin
                         rx_clr_w   <= not(data_bus_io(0));
                         tx_clr_w   <= not(data_bus_io(1));
                         bt_clr_w   <= not(data_bus_io(2));
-                        key1_irq_w <= data_bus_io(3);
-                        key2_irq_w <= data_bus_io(4);
-                        key3_irq_w <= data_bus_io(5);
+                        key1_clr_w <= not(data_bus_io(3));
+                        key2_clr_w <= not(data_bus_io(4));
+                        key3_clr_w <= not(data_bus_io(5));
                         fir_clr_w  <= not(data_bus_io(6));
                         fifo_clr_w <= not(data_bus_io(6));
                     end if;
@@ -187,6 +227,8 @@ begin
                     zero_vec_w & IFG_r when (A0_i = '1' and CS_i='1' and  MemRead_ctrl_i='1') else
                     zero_vec_w & cur_type when INTA_i = '0' else 
                     (others => 'Z');
+
+    ifg_o <= IFG_r;
 
 
     priority: process (IFG_r, fir_int_en_w, fifo_int_en_w)

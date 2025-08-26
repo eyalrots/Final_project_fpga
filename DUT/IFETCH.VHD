@@ -34,7 +34,9 @@ ENTITY Ifetch IS
 		pc_o 			: OUT	STD_LOGIC_VECTOR(PC_WIDTH-1 DOWNTO 0);
 		pc_plus4_o 		: OUT	STD_LOGIC_VECTOR(PC_WIDTH-1 DOWNTO 0);
 		instruction_o 	: OUT	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-		inst_cnt_o 		: OUT	STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0)	
+		inst_cnt_o 		: OUT	STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0);
+		--- interrupts ---
+		next_addr_o		: out	std_logic_vector(PC_WIDTH-1 downto 0)
 	);
 END Ifetch;
 
@@ -47,6 +49,7 @@ ARCHITECTURE behavior OF Ifetch IS
 	SIGNAL rst_flag_q			: STD_LOGIC;
 	SIGNAL inst_cnt_q 			: STD_LOGIC_VECTOR(INST_CNT_WIDTH-1 DOWNTO 0);
 	SIGNAL pc_prev_q			: STD_LOGIC_VECTOR(PC_WIDTH-1 DOWNTO 0);
+	signal ena_w				: std_logic := '1';
 BEGIN
 
 --ROM for Instruction Memory
@@ -59,7 +62,7 @@ BEGIN
 		lpm_hint => "ENABLE_RUNTIME_MOD = YES,INSTANCE_NAME = ITCM",
 		lpm_type => "altsyncram",
 		outdata_reg_a => "UNREGISTERED",
-		init_file => "C:\Users\Eyal\Architecture-Labs\Final_Project\Library\GPIO_test1\bin\ITCM.hex",
+		init_file => "C:\Users\Eyal\Architecture-Labs\Final_Project\Library\int_test4\bin\ITCM.hex",
 		intended_device_family => "Cyclone"
 	)
 	PORT MAP (
@@ -84,10 +87,20 @@ BEGIN
     pc_plus4_r(PC_WIDTH-1 DOWNTO 2)  <= pc_q(PC_WIDTH-1 DOWNTO 2) + 1;
 											
 	-- Mux to select Branch Address or PC + 4        
-	------------------------------------------------------------------------------------				
+	-------------------------------------------------------------------------------------				
 	next_pc_w  <= 	(others => '0') WHEN rst_flag_q = '1' ELSE
 					add_result_i  WHEN ((Jump_ctrl_i = '1') or (JR_ctrl_i = '1') or ((Branch_ctrl_i = '1') AND (zero_i = '1')) or ((BranchN_ctrl_i = '1') AND (zero_i = '0'))) ELSE
-					pc_plus4_r(PC_WIDTH-1 DOWNTO 2);				
+					pc_plus4_r(PC_WIDTH-1 DOWNTO 2);
+	-------------------------------------------------------------------------------------
+	ena_w <= '1' when ena_i else '0';
+	process (rst_flag_q, ena_w)
+	begin
+		if (rst_flag_q='1') then
+			next_addr_o	<= (others=>'0');
+		elsif (falling_edge(ena_w)) then
+			next_addr_o <= next_pc_w & "00";
+		end if;
+	end process;				
 	-------------------------------------------------------------------------------------
 	process (clk_i)
 	BEGIN

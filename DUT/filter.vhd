@@ -48,7 +48,6 @@ architecture filter_arch of filter is
     signal mul_8_w  : ieee.numeric_std.unsigned(W+Q-1 downto 0);
     signal new_out_w: std_logic := '0';
     signal ifg_w    : std_logic := '0';
-    signal clk_cnt_w: integer := 0;
     signal data_out_w : std_logic_vector(DATA_BUS_WIDTH-1 downto 0) := (others=>'0');
     signal zero_vec2_w: std_logic_vector(q-1 downto 0) := (others=>'0');
 begin
@@ -83,13 +82,6 @@ begin
             ifg_w <= '0';
         elsif (falling_edge(FIRCLK_i)) then
             if (FIRENA_i ='1') then
-                --- interrupt logic ---
-                -- if (new_out_w='0') then
-                --     -- clk_cnt_w <= 0;
-                --     ifg_w <= '1';
-                -- else
-                --     ifg_w <= '0';
-                -- end if;
                 --- out logic ---
                 data_out_w <= zero_vec2_w & y_n_1(DATA_BUS_WIDTH-1 downto q);
                 new_out_w <= '0';

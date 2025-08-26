@@ -44,6 +44,9 @@ begin
             rd_idx      <= (others => '0');
             new_out_w   <= '0';
         elsif (rising_edge(FIFOCLK_i)) then
+            if (new_out_w='1') then
+                new_out_w <= '0';
+            end if;
             --- write & read ---
             if (FIFOWEN_i ='1'  and full_w='0' and FIFOREN_i='1' and empty_w='0') then
                 fifo_reg(conv_integer(wr_idx)) <= FIFOIN_i(W-1 downto 0);
@@ -63,9 +66,6 @@ begin
                 data_out_w   <= fifo_reg(conv_integer(rd_idx));
                 new_out_w   <= '1';
                 rd_idx      <= std_logic_vector(ieee.numeric_std.unsigned(rd_idx)+1);
-            end if;
-            if (new_out_w='1') then
-                new_out_w <= '0';
             end if;
         end if;
     end process;

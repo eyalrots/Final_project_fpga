@@ -24,8 +24,6 @@ begin
             ready <= '0';
         elsif (rising_edge(FIRCLK_i)) then
             ready <= FIRENA_i;
-        -- else 
-        --     ready <= '0';
         end if ;
     end process;
 
