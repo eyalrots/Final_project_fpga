@@ -57,6 +57,7 @@ ARCHITECTURE mcu_arc OF mcu is
     --- clocks ---
     signal MCLK_w   : std_logic:= '0';
     signal SMCLK_w   : std_logic;
+    signal clk_cnt_sm_w : std_logic_vector(8 downto 0) := (others=>'0');
     --- tri bus ---
     signal data_bus_w   : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
     signal addr_bus_w   : std_logic_vector(11 downto 0);
@@ -105,13 +106,18 @@ begin
         c0 		 => MCLK_w
     );
 
-    SMCLK: PLL 
-    generic map (DIVIDE_BY=>2000) 
-    PORT MAP (
-        -- areset   => not_rst_w,
-        inclk0 	 => clk_i,
-        c0 		 => SMCLK_w
-    );
+    SMCLK: process (clk_i, not_rst_w)
+    begin
+        if (not_rst_w='1') then
+            SMCLK_w <= '0';
+        elsif (rising_edge(clk_i)) then
+            clk_cnt_sm_w <= std_logic_vector(ieee.numeric_std.unsigned(clk_cnt_sm_w) + 1);
+			if (clk_cnt_sm_w="111111111") then
+				SMCLK_w <= not(SMCLK_w);
+            else
+			end if;
+        end if;
+    end process;
 
 
     --- mips core ---
