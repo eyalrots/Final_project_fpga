@@ -106,11 +106,11 @@ begin
         c0 		 => MCLK_w
     );
 
-    SMCLK: process (clk_i, not_rst_w)
+    SMCLK: process (MCLK_w, not_rst_w)
     begin
         if (not_rst_w='1') then
             SMCLK_w <= '0';
-        elsif (rising_edge(clk_i)) then
+        elsif (rising_edge(MCLK_w)) then
             clk_cnt_sm_w <= std_logic_vector(ieee.numeric_std.unsigned(clk_cnt_sm_w) + 1);
 			if (clk_cnt_sm_w="111111111") then
 				SMCLK_w <= not(SMCLK_w);
