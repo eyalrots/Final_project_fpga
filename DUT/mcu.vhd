@@ -19,7 +19,6 @@ ENTITY mcu IS
 	);
     PORT (
         clk_i               : IN std_logic;
-        -- clk2_i              : in std_logic;
         rst_i               : IN std_logic;
         --- interrupts ---
         key1_i              : in std_logic;

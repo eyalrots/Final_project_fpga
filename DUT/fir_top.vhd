@@ -27,13 +27,6 @@ architecture fir_top_arc of fir_top is
     signal FIRCTL_w     : std_logic_vector(7 downto 0) := (others=>'0');
     signal COEF3_0_w    : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
     signal COEF7_4_w    : std_logic_vector(DATA_BUS_WIDTH-1 downto 0);
-    -- signal mclk2_w      : std_logic;
-    -- signal mclk4_w      : std_logic;
-    -- signal mclk8_w      : std_logic;
-    -- signal mclk16_w      : std_logic;
-    -- signal div4         : std_logic;
-    -- signal div8         : std_logic_vector(1 downto 0);
-    -- signal div16        : std_logic_vector(2 downto 0);
     signal read_en_w    : std_logic_vector(4 downto 0) := (others=>'0');
     signal zero_vec_w   : std_logic_vector(23 downto 0) := (others=>'0');
     signal fir_ena_w    : std_logic;
@@ -95,34 +88,6 @@ begin
                     COEF3_0_w when read_en_w(3)='1' else
                     COEF7_4_w when read_en_w(4)='1' else
                     (others=>'Z');
-
-    -- div_cnt: process(clk_i,rst_i)
-    -- begin 
-    --     if (rst_i='1') then
-    --         mclk2_w <= '0';
-	-- 		mclk4_w <= '0';
-	-- 		mclk8_w <= '0';
-    --         mclk16_w <= '0';
-    --         div4 <= '0';
-    --         div8 <= "00";
-    --         div16 <= "000";
-    --     end if;
-    --     if (rising_edge(clk_i)) then
-    --         mclk2_w <= not (mclk2_w);
-    --         div4 <= not(div4);
-	-- 		if (div4='1') then
-	-- 			mclk4_w <= not(mclk4_w);
-	-- 		end if;
-    --         div8 <= std_logic_vector(ieee.numeric_std.unsigned(div8) + 1);
-	-- 		if (div8="11") then
-	-- 			mclk8_w <= not(mclk8_w);
-	-- 		end if;
-    --         div16 <= std_logic_vector(ieee.numeric_std.unsigned(div16) + 1);
-	-- 		if (div16="111") then
-	-- 			mclk16_w <= not(mclk16_w);
-	-- 		end if;
-    --     end if;
-    -- end process;
 
     -- logic --
     FIR_filter: FIR port map(

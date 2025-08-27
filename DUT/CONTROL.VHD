@@ -68,7 +68,6 @@ BEGIN
 	
 	ALUOp_ctrl_o(0) 	<=  beq_w OR bneq_w OR itype_imm_w;
 	ALUOp_ctrl_o(1) 	<=  rtype_w OR itype_imm_w;
-	--ALUOp_ctrl_o(2)		<= itype_imm_w;
 	
 	-- 00 is not Rtype and not Branche
 	-- 01 is Branch operation

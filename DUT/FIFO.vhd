@@ -59,7 +59,6 @@ begin
                 fifo_count <= std_logic_vector(ieee.numeric_std.unsigned(FIFO_COUNT)+1);
                 fifo_reg(conv_integer(wr_idx)) <= FIFOIN_i(W-1 downto 0);
                 wr_idx     <= std_logic_vector(ieee.numeric_std.unsigned(wr_idx)+1);
-                -- data_out_w <= (others=>'0');
             --- read only ---
             elsif (FIFOREN_i='1' and empty_w='0') then
                 fifo_count  <= std_logic_vector(ieee.numeric_std.unsigned(fifo_count)-1);

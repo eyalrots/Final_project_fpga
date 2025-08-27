@@ -32,9 +32,9 @@ ARCHITECTURE struct OF MIPS_tb IS
 	SIGNAL clk_tb_i           	: STD_LOGIC;
 	SIGNAL clk2_tb_i           	: STD_LOGIC;
 	--- interrupts ---
-	signal key1_tb_i	: std_logic;
-	signal key2_tb_i	: std_logic;
-	signal key3_tb_i	: std_logic;
+	signal key1_tb_i	: std_logic:= '1';
+	signal key2_tb_i	: std_logic := '1';
+	signal key3_tb_i	: std_logic := '1';
 	--- GPIO ---
 	SIGNAL sw_tb_i    	: std_logic_vector(7 downto 0) := (others => '0');
 	SIGNAL hex0_tb_o 	 : std_logic_vector(6 downto 0);
@@ -145,10 +145,10 @@ BEGIN
 	process
   begin
 	sw_tb_i(1) <= '1';
-	-- wait for 500 ns;
-	-- key1_tb_i <= '1';
-	-- key2_tb_i <= '1';
-	-- key3_tb_i <= '0';
+	wait for 2000 ns;
+	key1_tb_i <= '1';
+	key2_tb_i <= '1';
+	key3_tb_i <= '0';
 	-- wait for 400 ns;
 	-- sw_tb_i(0) <= '1';
 	-- key1_tb_i <= '0';

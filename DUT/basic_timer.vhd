@@ -38,7 +38,6 @@ architecture basic_timer_arc of basic_timer is
     signal BTCCR0_w : std_logic_vector(DATA_BUS_WIDTH-1 downto 0) := (others=>'0');
     signal BTCCR1_w : std_logic_vector(DATA_BUS_WIDTH-1 downto 0) := (others=>'0');
     signal BTCNT_eq_0 : std_logic;
-    -- signal q24, q28, q32 : std_logic;
     signal zero_vec_w    : std_logic_vector (DATA_BUS_WIDTH-1 downto 0) := (others=>'0');
 begin
 
@@ -68,9 +67,6 @@ begin
         if (BTCLR_i='1') then
             BTCNT_w <= (others => '0');
             BTCNT_eq_0 <= '1';
-            -- q24 <= '0';
-            -- q28 <= '0';
-            -- q32 <= '0';
         elsif (clk_w'event and clk_w='1') then
             if (addr_bus_i=X"820" and MemWrite_i='1') then
                 BTCNT_w <= BTCNT_io;
@@ -79,21 +75,9 @@ begin
                 if (HEU0_w='1') then
                     BTCNT_w <= (others=>'0');
                     BTCNT_eq_0 <= '1';
-                    -- q24 <= '0';
-                    -- q28 <= '0';
-                    -- q32 <= '0';
                 else
                     BTCNT_w <= BTCNT_w+1;
                     BTCNT_eq_0 <= '0';
-                    -- if BTCNT_w(23)='1' then
-                    --     q24 <= '1';
-                    -- end if;
-                    -- if BTCNT_w(27)='1' then
-                    --     q28 <= '1';
-                    -- end if;
-                    -- if BTCNT_w(31)='1' then
-                    --     q32 <= '1';
-                    -- end if;
                 end if;
             end if;
         end if;
@@ -101,7 +85,6 @@ begin
 
     output_unit: process(clk_w, BTOUTEN_i, BTOUTMD_i)
     begin
-        -- HEU0_w <= '1' when (BTCNT_w=BTCCR0_w) else '0';
         if (BTCNT_w=BTCCR0_w and BTCCR0_w /= zero_vec_w) then
             HEU0_w <= '1';
         else

@@ -443,7 +443,6 @@ component int_ctrl
         MemWrite_ctrl_i : in std_logic;
         A0_i            : in std_logic;
         fir_empty_i     : in std_logic;
-        -- addr_bus_i		: in std_logic_vector(DTCM_ADDR_WIDTH-1 downto 0);
         ifg_o           : out std_logic_vector(7 downto 0);
         INTR_o          : out std_logic;  
         data_bus_io     : inout std_logic_vector(DATA_BUS_WIDTH-1 downto 0)

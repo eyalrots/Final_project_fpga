@@ -16,7 +16,6 @@ ENTITY Idecode IS
 	);
 	PORT(	clk_i,rst_i		: IN 	STD_LOGIC;
 			instruction_i 	: IN 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
-			--dtcm_data_rd_i 	: IN 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			alu_result_i	: IN 	STD_LOGIC_VECTOR(DATA_BUS_WIDTH-1 DOWNTO 0);
 			RegWrite_ctrl_i : IN 	std_logic;
 			MemtoReg_ctrl_i : IN 	STD_LOGIC_VECTOR(1 downto 0);
@@ -82,8 +81,6 @@ BEGIN
 
 	write_reg_data_w <= zero_vec_w & next_addr_i when (Jal_ctrl_i = '1' and in_intr_i) else
 						zero_vec_w & pc_plus_4_i when Jal_ctrl_i = '1' else
-						-- (5=>'1', OTHERS=>'0') WHEN write_reg_mux_w=X"FFFFFFFF" else
-						-- (1=>'1', 2=>'1', others=>'0') when write_reg_mux_w=X"C35" else
 						write_reg_mux_w;
 	
 	-- Sign Extend 16-bits to 32-bits

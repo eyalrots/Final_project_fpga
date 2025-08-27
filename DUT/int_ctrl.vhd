@@ -24,7 +24,6 @@ ENTITY int_ctrl IS
         MemWrite_ctrl_i : in std_logic;
         A0_i            : in std_logic;
         fir_empty_i     : in std_logic;
-        -- addr_bus_i		: in std_logic_vector(DTCM_ADDR_WIDTH-1 downto 0);
         ifg_o           : out std_logic_vector(7 downto 0);
         INTR_o          : out std_logic;  
         data_bus_io     : inout std_logic_vector(DATA_BUS_WIDTH-1 downto 0)
@@ -146,10 +145,6 @@ begin
             IFG_r   <= (others=>'0');
             IE_r    <= (others=>'0');
         elsif (falling_edge(clk_i)) then
-            --- set flag according to interrupt ---
-            -- if KEY1_INT_i = '1' then key1_irq_w <= '1'; end if;
-            -- if KEY2_INT_i = '1' then key2_irq_w <= '1'; end if;
-            -- if KEY3_INT_i = '1' then key3_irq_w <= '1'; end if;
             --- clear clear flags ---
             if (rx_clr_w='1') then
                 rx_clr_w <= '0';
@@ -248,6 +243,5 @@ begin
     INTR_o <= '1' when (IFG_r /= X"00" and GIE = '1') else '0';
     
     -- write type value of highest priority to data bus ---
-    cur_type <= TYPE_r(highest_priority_w); -- Rx should coose one of two!
-    -- data_bus_io <= zero_vec_w & cur_type when INTA_i = '0' else (others => 'Z');
+    cur_type <= TYPE_r(highest_priority_w);
 end architecture;

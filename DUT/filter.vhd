@@ -89,7 +89,6 @@ begin
                 if (new_out_w='1') then
                     new_out_w <= '0';
                     ifg_w <= '1';
-                    -- clk_cnt_w <= 1;
                     x_n_1 <= sample_i;
                     x_n_2 <= x_n_1;
                     x_n_3 <= x_n_2;

@@ -27,8 +27,6 @@ architecture timer_top_arc of timer_top is
     signal mclk2_w      : std_logic;
     signal mclk4_w      : std_logic;
     signal mclk8_w      : std_logic;
-    -- signal div4         : std_logic;
-    -- signal div8         : std_logic_vector(1 downto 0);
     signal read_en_w    : std_logic_vector(3 downto 0) := (others=>'0');
     signal zero_vec_w   : std_logic_vector(23 downto 0) := (others=>'0');
 begin
@@ -52,7 +50,6 @@ begin
                     when X"828" =>
                         BTCCR1_w <= data_bus_io;
                     when others =>
-                        -- BTCNT_w <= (others=>'Z');
                         null;
                 end case;
             end if;
