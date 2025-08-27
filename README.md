@@ -9,18 +9,16 @@ This file provides a brief overview of the project structure and the purpose of 
 This directory contains the VHDL source code for the Design Under Test (DUT), which is the MIPS-based MCU.
 
 - **`CONTROL.VHD`**: Implements the MIPS control unit. It decodes the instruction opcode and funct fields to generate the necessary control signals for the datapath.
-- **`DMEMORY.VHD`**: The data memory (DMEM) for the MIPS processor. It is implemented using an Altera `altsyncram` block.
-- **`EXECUTE.VHD`**: The execute stage of the MIPS pipeline. It contains the main Arithmetic Logic Unit (ALU) which performs arithmetic and logical operations. It also includes logic for calculating branch target addresses.
-- **`FIFO.vhd`**: A generic First-In, First-Out (FIFO) buffer.
+- **`DMEMORY.VHD`**: The data memory (DTCM) for the MIPS processor. It is implemented using an Altera `altsyncram` block.
+- **`EXECUTE.VHD`**: The execute stage of the MIPS. It contains the main Arithmetic Logic Unit (ALU) which performs arithmetic and logical operations. It also includes logic for calculating branch target addresses.
+- **`FIFO.vhd`**: A generic First-In, First-Out (FIFO) buffer used in filter operation.
 - **`FIR.vhd`**: A Finite Impulse Response (FIR) filter hardware accelerator. It uses a FIFO to buffer input samples and a separate calculation block (`filter.vhd`) to perform the filtering operation.
-- **`IDECODE.VHD`**: The instruction decode (ID) stage of the MIPS pipeline. It contains the register file, decodes instructions, and sign-extends immediate values.
-- **`IFETCH.VHD`**: The instruction fetch (IF) stage of the MIPS pipeline. It holds the program counter (PC), fetches instructions from the instruction memory (`altsyncram`), and calculates the next PC value.
-- **`MIPS.vhd`**: The top-level entity for the 5-stage pipelined MIPS processor. It connects the IF, ID, EX, and MEM stages.
+- **`IDECODE.VHD`**: The instruction decode (ID) stage of the MIPS. It contains the register file, decodes instructions, and sign-extends immediate values.
+- **`IFETCH.VHD`**: The instruction fetch (IF) stage of the MIPS. It holds the program counter (PC), fetches instructions from the instruction memory (`altsyncram`), and calculates the next PC value.
+- **`MIPS.vhd`**: The top-level entity for the MIPS processor. It connects the IF, ID, EX, and MEM files.
 - **`mcu.vhd`**: The top-level entity for the entire microcontroller unit (MCU). It instantiates the MIPS processor and connects it to various peripherals.
 - **`PLL.vhd`**: An Altera Phase-Locked Loop (PLL) megafunction (`altpll`). It is used to generate stable clock signals for the system.
 - **`Shifter.vhd`**: A generic barrel shifter used for shift operations in the execute stage.
-- **`UART_RX.vhd`**: A UART (Universal Asynchronous Receiver-Transmitter) receiver module for serial communication.
-- **`UART_TX.vhd`**: A UART transmitter module for serial communication.
 - **`address_decoder.vhd`**: Decodes the address bus to generate chip select signals for the various peripherals in the MCU.
 - **`aux_package.vhd`**: A VHDL package containing component declarations for all the modules used in the design.
 - **`basic_timer.vhd`**: A basic timer module with PWM (Pulse Width Modulation) generation capabilities.
@@ -32,15 +30,13 @@ This directory contains the VHDL source code for the Design Under Test (DUT), wh
 - **`hex_seg.vhd`**: A memory-mapped interface for a 7-segment display digit.
 - **`int_ctrl.vhd`**: A prioritized interrupt controller that manages interrupt requests from the various peripherals.
 - **`led_io.vhd`**: A memory-mapped interface for controlling a set of LEDs.
-- **`pulse_synchronizer.vhd`**: A pulse synchronizer for safely passing signals between different clock domains.
+- **`pulse_synchronizer.vhd`**: A pulse synchronizer for safely passing signals between different clock domains (FIFO and filter calculation).
 - **`sw_io.vhd`**: A memory-mapped interface for reading the state of a set of switches.
 - **`timer_top.vhd`**: A top-level wrapper for the basic timer that provides a memory-mapped interface for the MIPS processor.
 
 ## Other Directories
 
 - **`Library`**: Contains various test programs written in C and MIPS assembly language. Each subdirectory includes the source code and the compiled `.hex` files (`ITCM.hex` for instructions and `DTCM.hex` for data) that can be loaded into the processor's memories.
-
-- **`SW`**: Contains software-related files, including some test programs and the "MIPS Instruction Set.pdf" document.
 
 - **`TB`**: Holds the VHDL testbenches for simulating the design. This includes testbenches for the top-level MCU (`tb_sc_mips.vhd`), the FIR filter (`fir_tb.vhd`), and the timer (`timer_tb.vhd`).
 
